@@ -1,0 +1,25 @@
+{
+  "name": "odin-nodejs-messaging-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm exec turbo build",
+    "dev": "pnpm exec turbo dev",
+    "lint": "pnpm exec turbo lint"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "10.30.3"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "24.14.0"
+    }
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "turbo": "^2.11.7",
+    "typescript": "^7.0.2"
+  }
+}
