@@ -23,15 +23,9 @@ importers:
       dotenv:
         specifier: ^18.0.5
         version: 18.0.5
-      eslint:
-        specifier: ^10.12.0
-        version: 10.12.0(jiti@2.7.0)
       express:
         specifier: ^5.2.1
         version: 5.2.1
-      jiti:
-        specifier: ^2.7.0
-        version: 2.7.0
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -45,6 +39,12 @@ importers:
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
+      eslint:
+        specifier: ^10.12.0
+        version: 10.12.0(jiti@2.7.0)
+      jiti:
+        specifier: ^2.7.0
+        version: 2.7.0
       tsc-watch:
         specifier: ^7.2.1
         version: 7.2.1(typescript@7.0.2)
