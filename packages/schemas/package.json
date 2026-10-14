@@ -1,0 +1,28 @@
+{
+  "name": "@repo/schemas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": null,
+  "scripts": {
+    "build": "pnpm clean && pnpm exec tsc",
+    "build:watch": "pnpm clean && pnpm exec tsc --watch",
+    "clean": "rm -rf dist",
+    "test:unit": "pnpm exec vitest --config vitest.unit.config.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.3",
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/vitest-config": "workspace:*",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3",
+    "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "zod": "^4.6.5"
+  }
+}
