@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "exports": null,
+  "exports": {
+    "./errors": "./dist/errors.js",
+    "./user": "./dist/user.js"
+  },
   "scripts": {
     "build": "pnpm clean && pnpm exec tsc",
     "build:watch": "pnpm clean && pnpm exec tsc --watch",
     "clean": "rm -rf dist",
-    "test:unit": "pnpm exec vitest --config vitest.unit.config.ts"
+    "lint": "pnpm exec eslint --fix",
+    "test:unit": "pnpm exec vitest --config vitest.unit.config.mts"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +22,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@repo/vitest-config": "workspace:*",
+    "eslint": "^10.12.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3",
     "zod": "^4.6.5"
