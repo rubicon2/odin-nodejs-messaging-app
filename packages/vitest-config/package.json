@@ -1,9 +1,11 @@
 {
   "name": "@repo/vitest-config",
   "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "exports": {
-    "./unit": "./unit.js",
-    "./int": "./int.js"
+    "./unit": "./unit.mts",
+    "./int": "./int.mts"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
