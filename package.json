@@ -5,7 +5,8 @@
   "scripts": {
     "build": "pnpm exec turbo build",
     "dev": "pnpm exec turbo dev",
-    "lint": "pnpm exec turbo lint"
+    "lint": "pnpm exec turbo lint",
+    "test:unit": "pnpm exec turbo test:unit"
   },
   "devEngines": {
     "packageManager": {
