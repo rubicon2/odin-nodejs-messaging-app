@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./errors": "./dist/errors.js",
-    "./user": "./dist/user.js"
+    "./*": {
+      "types": "./src/*.mts",
+      "default": "./dist/*.js"
+    }
   },
   "scripts": {
     "build": "pnpm clean && pnpm exec tsc",
