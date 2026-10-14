@@ -1,7 +1,3 @@
-import { defineConfig } from 'vitest/config';
+import { unitConfig } from '@repo/vitest-config/unit';
 
-export default defineConfig({
-  test: {
-    include: ['./test/unit/**/*.test.*'],
-  },
-});
+export default unitConfig;
