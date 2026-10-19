@@ -1,6 +1,5 @@
-import * as errors from './errors.mjs';
-
 import * as z from 'zod';
+import * as errors from './errors.mjs';
 
 const handleLength = { min: 1, max: 50 };
 const displayNameLength = { min: 1, max: 50 };
