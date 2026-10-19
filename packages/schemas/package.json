@@ -10,12 +10,12 @@
     }
   },
   "scripts": {
-    "build": "pnpm clean && pnpm exec tsc",
-    "build:watch": "pnpm clean && pnpm exec tsc --watch",
+    "build": "pnpm clean && pnpm tsc",
+    "build:watch": "pnpm clean && pnpm tsc --watch",
     "clean": "rm -rf dist",
     "lint": "pnpm biome check",
     "lint:fix": "pnpm biome check --write",
-    "test:unit": "pnpm exec vitest --config vitest.unit.config.mts"
+    "test:unit": "pnpm vitest --config vitest.unit.config.mts"
   },
   "keywords": [],
   "author": "",

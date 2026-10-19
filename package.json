@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "pnpm exec turbo build",
-    "dev": "pnpm exec turbo dev",
-    "lint": "pnpm exec turbo lint",
+    "build": "pnpm turbo build",
+    "dev": "pnpm turbo dev",
+    "lint": "pnpm turbo lint",
     "lint:fix": "pnpm turbo lint:fix",
-    "test:unit": "pnpm exec turbo test:unit"
+    "test:unit": "pnpm turbo test:unit"
   },
   "devEngines": {
     "packageManager": {
