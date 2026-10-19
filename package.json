@@ -20,7 +20,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "prettier": "^3.9.9",
     "turbo": "^2.11.7",
     "typescript": "^7.0.2"
   }
