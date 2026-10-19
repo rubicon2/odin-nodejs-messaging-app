@@ -9,6 +9,7 @@
     "build:watch": "pnpm clean && pnpm exec tsc --watch",
     "clean": "rm -rf dist/*",
     "dev": "pnpm run clean && npx tsc-watch --onSuccess \"node dist/index.mjs\"",
+    "lint": "pnpm biome check",
     "test:unit": "pnpm exec vitest --config vitest.unit.config.ts"
   },
   "packageManager": "pnpm@10.30.3",
