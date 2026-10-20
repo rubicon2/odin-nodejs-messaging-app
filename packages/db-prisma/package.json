@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": "true",
   "type": "module",
+  "exports": {
+    "./client": "./index.mts"
+  },
   "scripts": {
     "deploy": "pnpm prisma migrate deploy && pnpm generate",
     "dev": "pnpm prisma migrate dev && pnpm generate",
