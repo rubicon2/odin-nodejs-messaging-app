@@ -1,0 +1,8 @@
+{
+  "name": "@repo/db-prisma",
+  "version": "1.0.0",
+  "private": "true",
+  "type": "module",
+  "scripts": {},
+  "packageManager": "pnpm@10.30.3"
+}
