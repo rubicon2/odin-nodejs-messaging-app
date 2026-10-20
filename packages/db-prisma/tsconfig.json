@@ -6,5 +6,7 @@
     "strict": true,
     "esModuleInterop": true,
     "ignoreDeprecations": "6.0"
-  }
+  },
+  "include": ["src"],
+  "exclude": ["dist"]
 }
