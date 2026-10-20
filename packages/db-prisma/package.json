@@ -4,9 +4,11 @@
   "private": "true",
   "type": "module",
   "scripts": {
-    "generate": "pnpm prisma generate",
     "deploy": "pnpm prisma migrate deploy && pnpm generate",
     "dev": "pnpm prisma migrate dev && pnpm generate",
+    "lint": "pnpm biome check",
+    "lint:fix": "pnpm biome check --write",
+    "generate": "pnpm prisma generate",
     "reset": "pnpm prisma migrate reset && pnpm generate"
   },
   "packageManager": "pnpm@10.30.3",
