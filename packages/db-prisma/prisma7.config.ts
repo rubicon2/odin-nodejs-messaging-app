@@ -9,6 +9,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // @ts-expect-error -- This file is outside scope of tsconfig.json.
+    url: process.env.DATABASE_URL,
   },
 });
