@@ -4,10 +4,19 @@
   "private": "true",
   "type": "module",
   "exports": {
-    "./client": "./src/client.mts",
-    "./prisma/*": "./src/generated/prisma/*.ts"
+    "./client": {
+      "types": "./dist/client.d.mts",
+      "default": "./dist/client.mjs"
+    },
+    "./prisma": {
+      "types": "./dist/**/*.d.ts",
+      "default": "./dist/**/*.js"
+    }
   },
   "scripts": {
+    "build": "pnpm generate && pnpm clean && pnpm tsc",
+    "build:watch": "pnpm generate && pnpm clean && pnpm tsc --watch",
+    "clean": "rm -rf dist/*",
     "deploy": "pnpm prisma migrate deploy && pnpm generate",
     "dev": "pnpm prisma migrate dev && pnpm generate",
     "lint": "pnpm biome check",
