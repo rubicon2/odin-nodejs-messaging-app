@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "private": "true",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "generate": "pnpm prisma generate",
+    "deploy": "pnpm prisma migrate deploy && pnpm generate",
+    "dev": "pnpm prisma migrate dev && pnpm generate",
+    "reset": "pnpm prisma migrate reset && pnpm generate"
+  },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
     "@types/node": "^26.6.5",
