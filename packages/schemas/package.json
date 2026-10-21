@@ -15,7 +15,8 @@
     "clean": "rm -rf dist",
     "lint": "pnpm biome check",
     "lint:fix": "pnpm biome check --write",
-    "test:unit": "pnpm vitest --config vitest.unit.config.mts"
+    "test:unit": "pnpm vitest run --config vitest.unit.config.mts",
+    "test:unit:watch": "pnpm vitest --config vitest.unit.config.mts"
   },
   "keywords": [],
   "author": "",

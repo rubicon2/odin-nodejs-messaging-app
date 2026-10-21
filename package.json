@@ -7,7 +7,8 @@
     "dev": "pnpm turbo dev",
     "lint": "pnpm turbo lint",
     "lint:fix": "pnpm turbo lint:fix",
-    "test:unit": "pnpm turbo test:unit"
+    "test:unit": "pnpm turbo test:unit",
+    "test:unit:watch": "pnpm turbo test:unit:watch"
   },
   "devEngines": {
     "packageManager": {

@@ -21,6 +21,9 @@
     },
     "test:unit": {
       "dependsOn": ["^test:unit"]
+    },
+    "test:unit:watch": {
+      "dependsOn": ["^test:unit:watch"]
     }
   }
 }
