@@ -21,7 +21,7 @@ npx prisma migrate reset --force
 exit_on_fail
 
 echo "Performing database migrations..."
-pnpm deploy
+pnpm db:deploy
 exit_on_fail
 
 echo "Database is ready"
