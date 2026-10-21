@@ -11,8 +11,10 @@
     "dev": "pnpm run clean && npx tsc-watch --onSuccess \"node dist/index.mjs\"",
     "lint": "pnpm biome check",
     "lint:fix": "pnpm biome check --write",
-    "test:unit": "pnpm vitest run --config vitest.unit.config.ts",
-    "test:unit:watch": "pnpm vitest --config vitest.unit.config.ts"
+    "test:db:start": "cd ../../packages/db && pnpm test:start",
+    "test:db:stop": "cd ../../packages/db && pnpm test:stop",
+    "test:unit": "pnpm test:db:start && pnpm vitest run --config vitest.unit.config.ts && pnpm test:db:stop",
+    "test:unit:watch": "pnpm test:db:start && pnpm vitest --config vitest.unit.config.ts && pnpm test:db:stop"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
