@@ -11,7 +11,8 @@
     "dev": "pnpm run clean && npx tsc-watch --onSuccess \"node dist/index.mjs\"",
     "lint": "pnpm biome check",
     "lint:fix": "pnpm biome check --write",
-    "test:unit": "pnpm vitest --config vitest.unit.config.ts"
+    "test:unit": "pnpm vitest run --config vitest.unit.config.ts",
+    "test:unit:watch": "pnpm vitest --config vitest.unit.config.ts"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
