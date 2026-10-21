@@ -24,6 +24,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@repo/db": "workspace:*",
     "@repo/schemas": "workspace:*",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
