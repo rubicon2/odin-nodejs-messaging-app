@@ -18,6 +18,7 @@
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
+    "@repo/types": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@repo/vitest-config": "workspace:*",
     "@types/express": "^5.0.6",
