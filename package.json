@@ -7,6 +7,8 @@
     "dev": "pnpm turbo dev",
     "lint": "pnpm turbo lint",
     "lint:fix": "pnpm turbo lint:fix",
+    "test:int": "pnpm turbo test:int",
+    "test:int:watch": "pnpm turbo test:int:watch",
     "test:unit": "pnpm turbo test:unit",
     "test:unit:watch": "pnpm turbo test:unit:watch"
   },

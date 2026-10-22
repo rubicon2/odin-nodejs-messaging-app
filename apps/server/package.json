@@ -13,6 +13,8 @@
     "lint:fix": "pnpm biome check --write",
     "test:db:start": "cd ../../packages/db && pnpm test:start",
     "test:db:stop": "cd ../../packages/db && pnpm test:stop",
+    "test:int": "pnpm test:db:start && pnpm vitest run --config vitest.int.config.ts && pnpm test:db:stop",
+    "test:int:watch": "pnpm test:db:start && pnpm vitest --config vitest.int.config.ts && pnpm test:db:stop",
     "test:unit": "pnpm test:db:start && pnpm vitest run --config vitest.unit.config.ts && pnpm test:db:stop",
     "test:unit:watch": "pnpm test:db:start && pnpm vitest --config vitest.unit.config.ts && pnpm test:db:stop"
   },

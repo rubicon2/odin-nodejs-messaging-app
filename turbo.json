@@ -19,6 +19,12 @@
     "lint:fix": {
       "dependsOn": ["^lint:fix"]
     },
+    "test:int": {
+      "dependsOn": ["^test:int"]
+    },
+    "test:int:watch": {
+      "dependsOn": ["^test:int:watch"]
+    },
     "test:unit": {
       "dependsOn": ["^test:unit"]
     },
