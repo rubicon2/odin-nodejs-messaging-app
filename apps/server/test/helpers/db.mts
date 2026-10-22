@@ -1,0 +1,24 @@
+import { db } from '../../src/db.mjs';
+
+export async function clearUsers() {
+  await db.user.deleteMany();
+}
+
+export async function clearChats() {
+  await db.chat.deleteMany();
+}
+
+export async function clearMessages() {
+  await db.message.deleteMany();
+}
+
+export async function clearInvites() {
+  await db.invite.deleteMany();
+}
+
+export async function clearDb() {
+  await clearInvites();
+  await clearMessages();
+  await clearChats();
+  await clearUsers();
+}
