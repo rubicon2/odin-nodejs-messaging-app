@@ -26,6 +26,7 @@ describe('refinements', () => {
         data: {
           handle: validData.handle,
           displayName: 'whatever',
+          hash: '12345',
         },
       });
 
@@ -60,6 +61,7 @@ describe('chains', () => {
         data: {
           handle: validData.handle,
           displayName: 'whatever',
+          hash: '12345',
         },
       });
 
