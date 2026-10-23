@@ -7,7 +7,7 @@ import { chains } from '../../schemas/serverUser.mjs';
 
 export const post: RequestHandler = async (req, res, next) => {
   try {
-    const parseResult = await chains.signup.safeParseAsync(req.body);
+    const parseResult = await chains.signup().safeParseAsync(req.body);
     if (!parseResult.success) {
       return res
         .status(400)

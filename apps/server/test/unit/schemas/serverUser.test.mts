@@ -58,7 +58,7 @@ describe('chains', () => {
   describe('signup', () => {
     it('is a function', () => {
       expect(typeof chains.signup).toStrictEqual('function');
-    })
+    });
 
     describe('returned chain', () => {
       it('returns parsed data if handle does not already exist on the database', async () => {
@@ -75,10 +75,90 @@ describe('chains', () => {
           },
         });
 
-        await expect(() => chains.signup().parseAsync(userData)).rejects.toThrow(
-          'That handle is already in use',
-        );
+        await expect(() =>
+          chains.signup().parseAsync(userData),
+        ).rejects.toThrow('That handle is already in use');
       });
-    })
+    });
+  });
+
+  describe('updateAll', () => {
+    it('is a function', () => {
+      expect(typeof chains.updateAll).toStrictEqual('function');
+    });
+
+    describe('returned chain', () => {
+      it('returns parsed data if handle does not already exist on the database', async () => {
+        const parsed = await chains.updateAll().parseAsync(userData);
+        expect(parsed).toStrictEqual(userData);
+      });
+
+      it('returns parsed data if handle exists, but its associated id was in the ignoreIds array', async () => {
+        const user = await db.user.create({
+          data: {
+            handle: userData.handle,
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        const parsed = await chains.updateAll([user.id]).parseAsync(userData);
+        expect(parsed).toStrictEqual(userData);
+      });
+
+      it('returns error if handle already exists on the database', async () => {
+        await db.user.create({
+          data: {
+            handle: userData.handle,
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        await expect(() =>
+          chains.updateAll().parseAsync(userData),
+        ).rejects.toThrow('That handle is already in use');
+      });
+    });
+  });
+
+  describe('updatePartial', () => {
+    it('is a function', () => {
+      expect(typeof chains.updatePartial).toStrictEqual('function');
+    });
+
+    describe('returned chain', () => {
+      it('returns parsed data if handle does not already exist on the database', async () => {
+        const parsed = await chains.updatePartial().parseAsync(userData);
+        expect(parsed).toStrictEqual(userData);
+      });
+
+      it('returns parsed data if handle exists, but its associated id was in the ignoreIds array', async () => {
+        const user = await db.user.create({
+          data: {
+            handle: userData.handle,
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        const parsed = await chains.updatePartial([user.id]).parseAsync(userData);
+        expect(parsed).toStrictEqual(userData);
+      });
+
+      it('returns error if handle already exists on the database', async () => {
+        await db.user.create({
+          data: {
+            handle: userData.handle,
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        await expect(() =>
+          chains.updatePartial().parseAsync(userData),
+        ).rejects.toThrow('That handle is already in use');
+      });
+    });
   });
 });

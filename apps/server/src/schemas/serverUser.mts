@@ -30,15 +30,17 @@ const handleTakenError = {
   error: 'That handle is already in use',
   path: ['handle'],
 };
-const signup = coreChains.signup.refine(isHandleAvailable(), handleTakenError);
-const updateAll = coreChains.updateAll.refine(
-  isHandleAvailable(),
-  handleTakenError,
-);
-const updatePartial = coreChains.updatePartial.refine(
-  isHandleAvailable(),
-  handleTakenError,
-);
+
+// Signup doesn't need to be a function, but just for consistency.
+const signup = () =>
+  coreChains.signup.refine(isHandleAvailable(), handleTakenError);
+const updateAll = (ignoreIds: string[] = []) =>
+  coreChains.updateAll.refine(isHandleAvailable(ignoreIds), handleTakenError);
+const updatePartial = (ignoreIds: string[] = []) =>
+  coreChains.updatePartial.refine(
+    isHandleAvailable(ignoreIds),
+    handleTakenError,
+  );
 
 export const refinements = {
   isHandleAvailable,
