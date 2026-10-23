@@ -1,10 +1,17 @@
-import type * as ResponseTypes from '@repo/types/response';
+import type {
+  ErrorResponseBody,
+  FailResponseBody,
+  PagedResponseMeta,
+  SuccessResponseBody,
+  SuccessResponseBodyPaged,
+  SuccessResponseBodySingle,
+} from '@repo/response-json';
 
 export default function pagedResponseMeta(
   total: number,
   take: number,
   skip: number,
-): ResponseTypes.PagedResponseMeta {
+): PagedResponseMeta {
   const pageSize = take;
   const currentOffset = Math.min(skip, total);
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
@@ -26,7 +33,7 @@ export default function pagedResponseMeta(
 export function success(
   data: Record<string, unknown>,
   message?: string,
-): ResponseTypes.SuccessResponseBody {
+): SuccessResponseBody {
   return {
     status: 'success',
     message,
@@ -37,7 +44,7 @@ export function success(
 export function successSingle<T>(
   item: T,
   message?: string,
-): ResponseTypes.SuccessResponseBodySingle<T> {
+): SuccessResponseBodySingle<T> {
   return {
     status: 'success',
     message,
@@ -48,10 +55,10 @@ export function successSingle<T>(
 }
 
 export function successPaged<T>(
-  meta: ResponseTypes.PagedResponseMeta,
+  meta: PagedResponseMeta,
   results: T[],
   message?: string,
-): ResponseTypes.SuccessResponseBodyPaged<T> {
+): SuccessResponseBodyPaged<T> {
   return {
     status: 'success',
     message,
@@ -65,7 +72,7 @@ export function successPaged<T>(
 export function fail(
   data: Record<string, unknown>,
   message?: string,
-): ResponseTypes.FailResponseBody {
+): FailResponseBody {
   return {
     status: 'fail',
     message,
@@ -73,7 +80,7 @@ export function fail(
   };
 }
 
-export function error(message: string): ResponseTypes.ErrorResponseBody {
+export function error(message: string): ErrorResponseBody {
   return {
     status: 'error',
     message,
