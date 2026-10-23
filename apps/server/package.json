@@ -34,6 +34,7 @@
     "@repo/db": "workspace:*",
     "@repo/response-json": "workspace:*",
     "@repo/schemas": "workspace:*",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
     "zod": "^4.6.5"
