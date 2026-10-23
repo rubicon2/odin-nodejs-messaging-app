@@ -23,6 +23,7 @@
     "@repo/typescript-config": "workspace:*",
     "@repo/vitest-config": "workspace:*",
     "@types/express": "^5.0.6",
+    "@types/supertest": "^7.2.1",
     "jiti": "^2.7.0",
     "supertest": "^7.3.1",
     "tsc-watch": "^7.2.1",
