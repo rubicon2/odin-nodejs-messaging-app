@@ -149,6 +149,33 @@ describe('fields', () => {
       );
     });
   });
+
+  describe('passwordConfirm', () => {
+    describe('success', () => {
+      it('returns a string', () => {
+        expect(fields.passwordConfirm.parse(validPassword)).toStrictEqual(
+          validPassword,
+        );
+      });
+    });
+
+    describe('fail', () => {
+      it.each([
+        {
+          testType: 'input is undefined',
+          badInput: undefined,
+          expectedMessage: 'Required field',
+        },
+      ])(
+        `returns an appropriate error when $testType`,
+        ({ badInput, expectedMessage }) => {
+          expect(() => fields.passwordConfirm.parse(badInput)).toThrow(
+            expectedMessage,
+          );
+        },
+      );
+    });
+  });
 });
 
 describe('chains', () => {

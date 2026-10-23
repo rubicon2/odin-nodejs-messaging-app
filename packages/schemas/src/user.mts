@@ -45,6 +45,13 @@ const password = z
   .regex(/(?=.*[0-9])/, 'Should use at least one number')
   .regex(/(?=.*[@$!%*?&])/, 'Should use at least one special character');
 
+/**
+ * We don't want to give the same errors to the user twice,
+ * on the password and passwordConfirm field, so limit the
+ * errors on passwordConfirm to required, and non-matching.
+ */
+const passwordConfirm = z.string(errors.requiredErrorMsg());
+
 const login = z.object({
   // When logging in, don't need to check against
   // requirements, just make sure they are there.
@@ -57,7 +64,7 @@ const signup = z
     handle,
     displayName,
     password,
-    passwordConfirm: password,
+    passwordConfirm,
   })
   .refine((data) => data.password === data.passwordConfirm, {
     error: 'Passwords do not match',
@@ -83,6 +90,7 @@ export const fields = {
   handle,
   displayName,
   password,
+  passwordConfirm,
 };
 
 export const chains = {
