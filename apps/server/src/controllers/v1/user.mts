@@ -11,7 +11,9 @@ export const post: RequestHandler = async (req, res, next) => {
     if (!parseResult.success) {
       return res
         .status(400)
-        .send(createResponseBody.fail(z.treeifyError(parseResult.error)));
+        .send(
+          createResponseBody.failValidation(z.treeifyError(parseResult.error)),
+        );
     }
 
     const validatedData = parseResult.data;

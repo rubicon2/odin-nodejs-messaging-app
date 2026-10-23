@@ -222,7 +222,7 @@ describe('POST', () => {
 
     it('returns appropriate errors', () => {
       expect(response.body).toStrictEqual({
-        status: 'fail',
+        status: 'fail-validation',
         data: expectedBodyData,
       });
     });
