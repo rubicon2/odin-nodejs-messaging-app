@@ -1,7 +1,7 @@
 import * as createResponseBody from '@repo/response-json';
+import { createValidationErrors } from '@repo/validation/zod';
 import * as bcryptjs from 'bcryptjs';
 import type { RequestHandler } from 'express';
-import z from 'zod';
 import { db } from '../../db.mjs';
 import { chains } from '../../schemas/serverUser.mjs';
 
@@ -12,7 +12,9 @@ export const post: RequestHandler = async (req, res, next) => {
       return res
         .status(400)
         .send(
-          createResponseBody.failValidation(z.treeifyError(parseResult.error)),
+          createResponseBody.failValidation(
+            createValidationErrors(parseResult.error),
+          ),
         );
     }
 
