@@ -20,5 +20,8 @@
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@repo/validation": "workspace:*"
   }
 }

@@ -102,6 +102,10 @@ importers:
         version: 7.0.2
 
   packages/response-json:
+    dependencies:
+      '@repo/validation':
+        specifier: workspace:*
+        version: link:../validation
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
