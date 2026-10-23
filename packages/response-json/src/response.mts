@@ -1,3 +1,5 @@
+import type { ValidationErrors } from '@repo/validation/zod';
+
 export interface PagedResponseMeta {
   total: number;
   pageSize: number;
@@ -91,21 +93,45 @@ export function successPaged<T>(
 
 export interface FailResponseBody {
   status: 'fail';
-  data: Record<string, unknown>;
+  message: string;
+}
+
+/**
+ * A general purpose fail body which
+ * can be used for things like 404's.
+ */
+export function fail(message: string): FailResponseBody {
+  return {
+    status: 'fail',
+    message,
+  };
+}
+
+/**
+ * A fail validation response body should be
+ * sent when the user provides invalid input.
+ */
+export interface FailValidationResponseBody<T> {
+  status: 'fail-validation';
+  data: ValidationErrors<T>;
   message?: string | undefined;
 }
 
-export function fail(
-  data: Record<string, unknown>,
+export function failValidation<T>(
+  data: ValidationErrors<T>,
   message?: string,
-): FailResponseBody {
+): FailValidationResponseBody<T> {
   return {
-    status: 'fail',
+    status: 'fail-validation',
     message,
     data,
   };
 }
 
+/**
+ * An error response body should be sent
+ * upon encountering an unexpected error.
+ */
 export interface ErrorResponseBody {
   status: 'error';
   message: string;
