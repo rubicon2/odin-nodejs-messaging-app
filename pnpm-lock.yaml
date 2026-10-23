@@ -140,6 +140,19 @@ importers:
 
   packages/typescript-config: {}
 
+  packages/validation:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/vitest-config:
     devDependencies:
       vitest:
