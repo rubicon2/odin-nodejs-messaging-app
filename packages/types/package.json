@@ -6,8 +6,15 @@
   "exports": {
     "./*": {
       "types": "./src/*.mts",
-      "default": "./src/*.mts"
+      "default": "./dist/*.mjs"
     }
+  },
+  "scripts": {
+    "build": "pnpm clean && pnpm tsc",
+    "build:watch": "pnpm clean && pnpm tsc --watch",
+    "clean": "rm -rf dist/*",
+    "lint": "pnpm biome check",
+    "lint:fix": "pnpm biome check --write"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
