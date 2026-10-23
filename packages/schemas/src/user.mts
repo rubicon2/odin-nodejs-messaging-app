@@ -15,7 +15,7 @@ const handle = z
     handleLength.max,
     errors.lengthErrorMsg(handleLength.min, handleLength.max),
   )
-  .regex(/^[a-zA-Z0-9_]+$/, errors.alphanumericErrorMsg());
+  .regex(/^[a-zA-Z0-9_]*$/, errors.alphanumericErrorMsg());
 
 const displayName = z
   .string(errors.requiredErrorMsg())
