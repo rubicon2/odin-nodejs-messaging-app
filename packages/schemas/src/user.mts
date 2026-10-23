@@ -59,6 +59,8 @@ const login = z.object({
   password: z.string(errors.requiredErrorMsg()),
 });
 
+type LoginData = z.infer<typeof login>;
+
 const signup = z
   .object({
     handle,
@@ -71,7 +73,11 @@ const signup = z
     path: ['passwordConfirm'],
   });
 
+type SignupData = z.infer<typeof signup>;
+
 const updateAll = signup;
+
+type UpdateAllData = z.infer<typeof updateAll>;
 
 const updatePartial = z
   .object({
@@ -86,6 +92,8 @@ const updatePartial = z
     path: ['passwordConfirm'],
   });
 
+type UpdatePartialData = z.infer<typeof updatePartial>;
+
 export const fields = {
   handle,
   displayName,
@@ -99,3 +107,5 @@ export const chains = {
   updateAll,
   updatePartial,
 };
+
+export type { LoginData, SignupData, UpdateAllData, UpdatePartialData };
