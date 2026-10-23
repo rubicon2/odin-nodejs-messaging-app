@@ -29,6 +29,9 @@ importers:
       '@repo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@repo/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
