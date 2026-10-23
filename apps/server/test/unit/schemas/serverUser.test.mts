@@ -10,22 +10,46 @@ beforeEach(async () => {
 
 describe('refinements', () => {
   describe('isHandleAvailable', () => {
-    it('returns true if handle does not already exist on the database', async () => {
-      const result = await refinements.isHandleAvailable(userData);
-      expect(result).toStrictEqual(true);
+    it('is a function', () => {
+      expect(typeof refinements.isHandleAvailable).toStrictEqual('function');
     });
 
-    it('returns false if handle already exists on the database', async () => {
-      await db.user.create({
-        data: {
-          handle: userData.handle,
-          displayName: 'whatever',
-          hash: '12345',
-        },
+    it('returns a refinement function', () => {
+      // Not sure how to check it is a refinement and not just a function.
+      expect(typeof refinements.isHandleAvailable()).toStrictEqual('function');
+    });
+
+    describe('returned refinement', () => {
+      it('returns true if handle does not already exist on the database', async () => {
+        const result = await refinements.isHandleAvailable()(userData);
+        expect(result).toStrictEqual(true);
       });
 
-      const result = await refinements.isHandleAvailable(userData);
-      expect(result).toStrictEqual(false);
+      it('returns true if handle exists, but its associated id was in the ignoreIds array', async () => {
+        const user = await db.user.create({
+          data: {
+            handle: userData.handle,
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        const result = await refinements.isHandleAvailable([user.id])(userData);
+        expect(result).toStrictEqual(true);
+      });
+
+      it('returns false if handle already exists on the database and not in ignoreIds array', async () => {
+        await db.user.create({
+          data: {
+            handle: userData.handle,
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        const result = await refinements.isHandleAvailable()(userData);
+        expect(result).toStrictEqual(false);
+      });
     });
   });
 });
