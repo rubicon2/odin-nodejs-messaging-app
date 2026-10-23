@@ -1,7 +1,36 @@
+import * as createResponseBody from '@repo/response-json';
+import * as bcryptjs from 'bcryptjs';
 import type { RequestHandler } from 'express';
+import z from 'zod';
+import { db } from '../../db.mjs';
+import { chains } from '../../schemas/serverUser.mjs';
 
-export const post: RequestHandler = (req, res, next) => {
-    return res.send('post user');
+export const post: RequestHandler = async (req, res, next) => {
+  try {
+    const parseResult = await chains.signup.safeParseAsync(req.body);
+    if (!parseResult.success) {
+      return res
+        .status(400)
+        .send(createResponseBody.fail(z.treeifyError(parseResult.error)));
+    }
+
+    const validatedData = parseResult.data;
+    const hash = await bcryptjs.hash(validatedData.password, 10);
+
+    await db.user.create({
+      data: {
+        handle: validatedData.handle,
+        displayName: validatedData.displayName,
+        hash,
+      },
+    });
+
+    return res.send(
+      createResponseBody.success({}, 'User successfully created'),
+    );
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const put: RequestHandler = (req, res, next) => {
