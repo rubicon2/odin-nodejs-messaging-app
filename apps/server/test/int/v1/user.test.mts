@@ -7,6 +7,161 @@ import { userData } from '../../helpers/postData.mjs';
 
 const baseUrl = '/v1/user';
 
+const bodyTestCases = {
+  handleUndefined: {
+    testType: 'no handle',
+    badData: { handle: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  handleTooShort: {
+    testType: 'empty handle',
+    badData: { handle: '' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  handleTooLong: {
+    testType: '51+ character handle',
+    badData: {
+      handle: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  displayNameUndefined: {
+    testType: 'no displayName',
+    badData: { displayName: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        displayName: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  displayNameTooShort: {
+    testType: 'empty displayName',
+    badData: { displayName: '' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        displayName: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  displayNameTooLong: {
+    testType: '51+ character displayName',
+    badData: {
+      displayName: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        displayName: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  passwordUndefined: {
+    testType: 'no password',
+    badData: { password: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        password: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  passwordTooShort: {
+    testType: 'empty password',
+    // So passwords match, include passwordConfirm.
+    badData: { password: '', passwordConfirm: '' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        password: {
+          errors: [
+            'Should be between 8 and 100 characters long',
+            'Should use at least one uppercase character',
+            'Should use at least one lowercase character',
+            'Should use at least one number',
+            'Should use at least one special character',
+          ],
+        },
+      },
+    },
+  },
+  passwordTooLong: {
+    testType: '101+ character password',
+    badData: {
+      password:
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
+      passwordConfirm:
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        password: {
+          errors: ['Should be between 8 and 100 characters long'],
+        },
+      },
+    },
+  },
+  passwordConfirmUndefined: {
+    testType: 'no passwordConfirm',
+    badData: {
+      passwordConfirm: undefined,
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        passwordConfirm: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  passwordAndPasswordConfirmNonMatching: {
+    testType: 'non-matching password and passwordConfirm',
+    badData: {
+      passwordConfirm: 'some other rubbish',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        passwordConfirm: {
+          errors: ['Passwords do not match'],
+        },
+      },
+    },
+  },
+};
+
 beforeEach(dbHelpers.clearDb);
 
 describe('POST', () => {
@@ -55,176 +210,26 @@ describe('POST', () => {
     });
   });
 
-  describe.each([
-    {
-      testType: 'no handle',
-      badData: { handle: undefined },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          handle: {
-            errors: ['Required field'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'empty handle',
-      badData: { handle: '' },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          handle: {
-            errors: ['Should be between 1 and 50 characters long'],
-          },
-        },
-      },
-    },
-    {
-      testType: '51+ character handle',
-      badData: {
-        handle: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          handle: {
-            errors: ['Should be between 1 and 50 characters long'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'no displayName',
-      badData: { displayName: undefined },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          displayName: {
-            errors: ['Required field'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'empty displayName',
-      badData: { displayName: '' },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          displayName: {
-            errors: ['Should be between 1 and 50 characters long'],
-          },
-        },
-      },
-    },
-    {
-      testType: '51+ character displayName',
-      badData: {
-        displayName: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          displayName: {
-            errors: ['Should be between 1 and 50 characters long'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'no password',
-      badData: { password: undefined },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          password: {
-            errors: ['Required field'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'empty password',
-      // So passwords match, include passwordConfirm.
-      badData: { password: '', passwordConfirm: '' },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          password: {
-            errors: [
-              'Should be between 8 and 100 characters long',
-              'Should use at least one uppercase character',
-              'Should use at least one lowercase character',
-              'Should use at least one number',
-              'Should use at least one special character',
-            ],
-          },
-        },
-      },
-    },
-    {
-      testType: '101+ character password',
-      badData: {
-        password:
-          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
-        passwordConfirm:
-          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
-      },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          password: {
-            errors: ['Should be between 8 and 100 characters long'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'no passwordConfirm',
-      badData: {
-        passwordConfirm: undefined,
-      },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          passwordConfirm: {
-            errors: ['Required field'],
-          },
-        },
-      },
-    },
-    {
-      testType: 'non-matching password and passwordConfirm',
-      badData: {
-        passwordConfirm: 'some other rubbish',
-      },
-      expectedBodyData: {
-        errors: [],
-        properties: {
-          passwordConfirm: {
-            errors: ['Passwords do not match'],
-          },
-        },
-      },
-    },
-  ])('when provided: $testType', async ({ badData, expectedBodyData }) => {
-    const response = await request(server)
-      .post(baseUrl)
-      .send({
-        ...userData,
-        ...badData,
+  describe.each(Object.values(bodyTestCases))(
+    'when provided: $testType',
+    async ({ badData, expectedBodyData }) => {
+      const response = await request(server)
+        .post(baseUrl)
+        .send({
+          ...userData,
+          ...badData,
+        });
+
+      it('returns status code 400', () => {
+        expect(response.status).toStrictEqual(400);
       });
 
-    it('returns status code 400', () => {
-      expect(response.status).toStrictEqual(400);
-    });
-
-    it('returns appropriate errors', () => {
-      expect(response.body).toStrictEqual({
-        status: 'fail-validation',
-        data: expectedBodyData,
+      it('returns appropriate errors', () => {
+        expect(response.body).toStrictEqual({
+          status: 'fail-validation',
+          data: expectedBodyData,
+        });
       });
-    });
-  });
+    },
+  );
 });
