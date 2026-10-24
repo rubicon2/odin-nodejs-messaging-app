@@ -142,7 +142,9 @@ describe('chains', () => {
           },
         });
 
-        const parsed = await chains.updatePartial([user.id]).parseAsync(userData);
+        const parsed = await chains
+          .updatePartial([user.id])
+          .parseAsync(userData);
         expect(parsed).toStrictEqual(userData);
       });
 
