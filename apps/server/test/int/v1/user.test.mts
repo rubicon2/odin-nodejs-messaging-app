@@ -10,7 +10,7 @@ const baseUrl = '/v1/user';
 const bodyTestCases = {
   handleUndefined: {
     testType: 'no handle',
-    badData: { handle: undefined },
+    badData: { ...userData, handle: undefined },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -22,7 +22,7 @@ const bodyTestCases = {
   },
   handleTooShort: {
     testType: 'empty handle',
-    badData: { handle: '' },
+    badData: { ...userData, handle: '' },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -35,6 +35,7 @@ const bodyTestCases = {
   handleTooLong: {
     testType: '51+ character handle',
     badData: {
+      ...userData,
       handle: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
     },
     expectedBodyData: {
@@ -48,7 +49,7 @@ const bodyTestCases = {
   },
   displayNameUndefined: {
     testType: 'no displayName',
-    badData: { displayName: undefined },
+    badData: { ...userData, displayName: undefined },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -60,7 +61,7 @@ const bodyTestCases = {
   },
   displayNameTooShort: {
     testType: 'empty displayName',
-    badData: { displayName: '' },
+    badData: { ...userData, displayName: '' },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -73,6 +74,7 @@ const bodyTestCases = {
   displayNameTooLong: {
     testType: '51+ character displayName',
     badData: {
+      ...userData,
       displayName: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
     },
     expectedBodyData: {
@@ -86,7 +88,7 @@ const bodyTestCases = {
   },
   passwordUndefined: {
     testType: 'no password',
-    badData: { password: undefined },
+    badData: { ...userData, password: undefined },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -99,7 +101,7 @@ const bodyTestCases = {
   passwordTooShort: {
     testType: 'empty password',
     // So passwords match, include passwordConfirm.
-    badData: { password: '', passwordConfirm: '' },
+    badData: { ...userData, password: '', passwordConfirm: '' },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -118,6 +120,7 @@ const bodyTestCases = {
   passwordTooLong: {
     testType: '101+ character password',
     badData: {
+      ...userData,
       password:
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
       passwordConfirm:
@@ -134,9 +137,7 @@ const bodyTestCases = {
   },
   passwordConfirmUndefined: {
     testType: 'no passwordConfirm',
-    badData: {
-      passwordConfirm: undefined,
-    },
+    badData: { ...userData, passwordConfirm: undefined },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -148,9 +149,7 @@ const bodyTestCases = {
   },
   passwordAndPasswordConfirmNonMatching: {
     testType: 'non-matching password and passwordConfirm',
-    badData: {
-      passwordConfirm: 'some other rubbish',
-    },
+    badData: { ...userData, passwordConfirm: 'some other rubbish' },
     expectedBodyData: {
       errors: [],
       properties: {
@@ -213,12 +212,7 @@ describe('POST', () => {
   describe.each(Object.values(bodyTestCases))(
     'when provided: $testType',
     async ({ badData, expectedBodyData }) => {
-      const response = await request(server)
-        .post(baseUrl)
-        .send({
-          ...userData,
-          ...badData,
-        });
+      const response = await request(server).post(baseUrl).send(badData);
 
       it('returns status code 400', () => {
         expect(response.status).toStrictEqual(400);
