@@ -207,14 +207,15 @@ describe('POST', () => {
 
   describe.each(Object.values(bodyTestCases))(
     'when provided: $testType',
-    async ({ badData, expectedBodyData }) => {
-      const response = await request(server).post(baseUrl).send(badData);
-
-      it('returns status code 400', () => {
+    ({ badData, expectedBodyData }) => {
+      it('returns status code 400', async () => {
+        const response = await request(server).post(baseUrl).send(badData);
         expect(response.status).toStrictEqual(400);
       });
 
-      it('returns appropriate errors', () => {
+      it('returns appropriate errors', async () => {
+        const response = await request(server).post(baseUrl).send(badData);
+
         expect(response.body).toStrictEqual({
           status: 'fail-validation',
           data: expectedBodyData,
