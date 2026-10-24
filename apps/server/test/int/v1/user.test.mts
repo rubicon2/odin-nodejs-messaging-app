@@ -101,17 +101,13 @@ const bodyTestCases = {
   passwordTooShort: {
     testType: 'empty password',
     // So passwords match, include passwordConfirm.
-    badData: { ...userData, password: '', passwordConfirm: '' },
+    badData: { ...userData, password: 'aA@1', passwordConfirm: 'aA@1' },
     expectedBodyData: {
       errors: [],
       properties: {
         password: {
           errors: [
             'Should be between 8 and 100 characters long',
-            'Should use at least one uppercase character',
-            'Should use at least one lowercase character',
-            'Should use at least one number',
-            'Should use at least one special character',
           ],
         },
       },
