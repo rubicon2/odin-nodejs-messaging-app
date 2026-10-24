@@ -134,9 +134,7 @@ const bodyTestCases: Record<string, TestCaseData> = {
       errors: [],
       properties: {
         password: {
-          errors: [
-            'Should be between 8 and 100 characters long',
-          ],
+          errors: ['Should be between 8 and 100 characters long'],
         },
       },
     },
