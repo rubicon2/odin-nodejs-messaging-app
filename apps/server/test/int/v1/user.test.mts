@@ -3,11 +3,22 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../../src/db.mts';
 import { server } from '../../../src/server.mjs';
 import * as dbHelpers from '../../helpers/db.mjs';
+import { dbUserData } from '../../helpers/dbData.mts';
 import { userData } from '../../helpers/postData.mjs';
 
 const baseUrl = '/v1/user';
 
-const bodyTestCases = {
+interface TestCaseData {
+  testType: string;
+  badData: Record<string, unknown>;
+  expectedBodyData: {
+    errors: string[];
+    properties: Record<string, { errors: string[] }>;
+  };
+  setupPostFn?: () => void;
+}
+
+const bodyTestCases: Record<string, TestCaseData> = {
   handleUndefined: {
     testType: 'no handle',
     badData: { ...userData, handle: undefined },
@@ -43,6 +54,23 @@ const bodyTestCases = {
       properties: {
         handle: {
           errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  handleTaken: {
+    testType: 'handle already in use',
+    setupPostFn: async () => {
+      await db.user.create({
+        data: dbUserData,
+      });
+    },
+    badData: userData,
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['That handle is already in use'],
         },
       },
     },
@@ -207,13 +235,19 @@ describe('POST', () => {
 
   describe.each(Object.values(bodyTestCases))(
     'when provided: $testType',
-    ({ badData, expectedBodyData }) => {
+    ({ setupPostFn, badData, expectedBodyData }) => {
       it('returns status code 400', async () => {
+        if (setupPostFn) {
+          await setupPostFn();
+        }
         const response = await request(server).post(baseUrl).send(badData);
         expect(response.status).toStrictEqual(400);
       });
 
       it('returns appropriate errors', async () => {
+        if (setupPostFn) {
+          await setupPostFn();
+        }
         const response = await request(server).post(baseUrl).send(badData);
 
         expect(response.body).toStrictEqual({
