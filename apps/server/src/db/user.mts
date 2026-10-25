@@ -74,7 +74,24 @@ export async function del(userId: string): Promise<UserResource> {
     },
     omit: userResourceOmit,
   });
+  return user;
+}
 
+export async function getUnique(
+  /**
+   * You can get the user by id or handle, since both
+   * are required by the database to be unique.
+   */
+  whereUnique:
+    | {
+        id: string;
+      }
+    | { handle: string },
+): Promise<UserResource | null> {
+  const user = await client.user.findUnique({
+    where: whereUnique,
+    omit: userResourceOmit,
+  });
   return user;
 }
 

@@ -171,3 +171,49 @@ describe('del', () => {
     await expect(() => userResource.del('invalid-id')).rejects.toThrow();
   });
 });
+
+describe('getUnique', () => {
+  it('given a valid id, returns the corresponding user', async () => {
+    const userToFind = await db.user.create({
+      data: userData,
+      omit: {
+        hash: true,
+      },
+    });
+
+    const user = await userResource.getUnique({ id: userToFind.id });
+    expect(user).toStrictEqual(userToFind);
+  });
+
+  it('given a valid handle, returns the corresponding user', async () => {
+    const userToFind = await db.user.create({
+      data: userData,
+      omit: {
+        hash: true,
+      },
+    });
+
+    const user = await userResource.getUnique({ handle: userToFind.handle });
+    expect(user).toStrictEqual(userToFind);
+  });
+
+  it('returned user does not contain password hash', async () => {
+    const existingDbUser = await db.user.create({
+      data: userData,
+    });
+
+    const user = await userResource.getUnique({ id: existingDbUser.id });
+    // @ts-expect-error -- Testing something doesn't exist.
+    expect(user.hash).not.toBeDefined();
+  });
+
+  it('given an invalid id, returns null', async () => {
+    const user = await userResource.getUnique({ id: 'invalid-id' });
+    expect(user).toBeNull();
+  });
+
+  it('given an invalid handle, returns null', async () => {
+    const user = await userResource.getUnique({ handle: 'invalid-handle' });
+    expect(user).toBeNull();
+  });
+});
