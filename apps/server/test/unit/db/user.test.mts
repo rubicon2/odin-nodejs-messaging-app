@@ -132,3 +132,42 @@ describe('update', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('del', () => {
+  it('given an id, deletes a user on the database and returns it', async () => {
+    // Post a user to delete.
+    const existingDbUser = await db.user.create({
+      data: userData,
+    });
+
+    const deletedUser = await userResource.del(existingDbUser.id);
+    expect(deletedUser).toStrictEqual({
+      id: existingDbUser.id,
+      createdAt: existingDbUser.createdAt,
+      updatedAt: expect.any(Date),
+      handle: existingDbUser.handle,
+      displayName: existingDbUser.displayName,
+    });
+
+    const deletedDbUser = await db.user.findUnique({
+      where: {
+        id: deletedUser?.id,
+      },
+    });
+    expect(deletedDbUser).toBeNull();
+  });
+
+  it('returned user does not contain password hash', async () => {
+    const existingDbUser = await db.user.create({
+      data: userData,
+    });
+
+    const user = await userResource.del(existingDbUser.id);
+    // @ts-expect-error -- Testing something doesn't exist.
+    expect(user.hash).not.toBeDefined();
+  });
+
+  it('given an invalid id, throws an error', async () => {
+    await expect(() => userResource.del('invalid-id')).rejects.toThrow();
+  });
+});
