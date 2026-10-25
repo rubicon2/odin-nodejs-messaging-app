@@ -37,3 +37,22 @@ export async function create({
   });
   return user;
 }
+
+export async function update(
+  userId: string,
+  { handle, displayName, hash }: Partial<UserData>,
+): Promise<UserResource> {
+  const user = await client.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      handle,
+      displayName,
+      hash,
+    },
+    omit: userResourceOmit,
+  });
+  return user;
+}
+
