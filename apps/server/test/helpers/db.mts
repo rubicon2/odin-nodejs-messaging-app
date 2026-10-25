@@ -1,4 +1,4 @@
-import { db } from '../../src/db.mjs';
+import { client as db } from '../../src/db/client.mjs';
 
 export async function clearUsers() {
   await db.user.deleteMany();

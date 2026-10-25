@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db } from '../../../src/db.mjs';
+import { client as db } from '../../../src/db/client.mjs';
 import { chains, refinements } from '../../../src/schemas/serverUser.mjs';
 import * as dbHelpers from '../../helpers/db.mjs';
 import { userData } from '../../helpers/postData.mts';
