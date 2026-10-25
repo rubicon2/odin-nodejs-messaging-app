@@ -56,3 +56,25 @@ export async function update(
   return user;
 }
 
+export async function del(userId: string): Promise<UserResource> {
+  /**
+   * We may run into an issue where a client sends two requests to
+   * delete a user within a few milliseconds, and between loading
+   * the user or checking it exists, and then deleting it, one
+   * request will have been fulfilled, and the second will try to
+   * delete something that doesn't exist, resulting in an error.
+   * Prisma's deleteMany method provides a userful way to do that
+   * without throwing any errors, but we can't get the deleted user
+   * with that method. For now, just do this in the simplest and
+   * most obvious way until it becomes a problem.
+   */
+  const user = await client.user.delete({
+    where: {
+      id: userId,
+    },
+    omit: userResourceOmit,
+  });
+
+  return user;
+}
+
