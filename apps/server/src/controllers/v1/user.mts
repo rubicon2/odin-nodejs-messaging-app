@@ -2,7 +2,7 @@ import * as createResponseBody from '@repo/response-json';
 import { createValidationErrors } from '@repo/validation/zod';
 import * as bcryptjs from 'bcryptjs';
 import type { RequestHandler } from 'express';
-import { db } from '../../db.mjs';
+import { client as db } from '../../db/client.mjs';
 import { chains } from '../../schemas/serverUser.mjs';
 
 export const post: RequestHandler = async (req, res, next) => {

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db } from '../../../src/db.mts';
+import { client as db } from '../../../src/db/client.mts';
 import { server } from '../../../src/server.mjs';
 import * as dbHelpers from '../../helpers/db.mjs';
 import { dbUserData } from '../../helpers/dbData.mts';

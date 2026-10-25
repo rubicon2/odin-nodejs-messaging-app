@@ -6,4 +6,4 @@ import { createClient } from '@repo/db/client';
  * is more efficient than creating a new client
  * whenever we need to do a database query.
  */
-export const db = createClient();
+export const client = createClient();

@@ -1,5 +1,5 @@
 import { chains as coreChains } from '@repo/schemas/user';
-import { db } from '../db.mjs';
+import { client as db } from '../db/client.mjs';
 
 // These chains extend the @repo/schemas with server side checks.
 
