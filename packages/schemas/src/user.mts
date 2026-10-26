@@ -52,15 +52,6 @@ const password = z
  */
 const passwordConfirm = z.string(errors.requiredErrorMsg());
 
-const login = z.object({
-  // When logging in, don't need to check against
-  // requirements, just make sure they are there.
-  handle: z.string(errors.requiredErrorMsg()),
-  password: z.string(errors.requiredErrorMsg()),
-});
-
-type LoginData = z.infer<typeof login>;
-
 const signup = z
   .object({
     handle,
@@ -102,10 +93,9 @@ export const fields = {
 };
 
 export const chains = {
-  login,
   signup,
   updateAll,
   updatePartial,
 };
 
-export type { LoginData, SignupData, UpdateAllData, UpdatePartialData };
+export type { SignupData, UpdateAllData, UpdatePartialData };
