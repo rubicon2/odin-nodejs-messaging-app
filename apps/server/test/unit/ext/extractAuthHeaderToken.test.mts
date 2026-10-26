@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { extractAuthHeaderToken } from '../../../src/ext/extractAuthHeaderToken.mjs';
 
 describe('extractAuthHeaderToken', () => {
-  it('extracts the bearer token from an authorization header', () => {
+  it('given a request with a valid authorization header bearer token, extracts and returns it', () => {
     expect(
       extractAuthHeaderToken({
         headers: {
@@ -12,7 +12,7 @@ describe('extractAuthHeaderToken', () => {
     ).toStrictEqual('12345');
   });
 
-  it('returns null if there is no authorization header', () => {
+  it('given a request with no authorization header, returns null', () => {
     expect(
       extractAuthHeaderToken({
         headers: {},
@@ -21,7 +21,7 @@ describe('extractAuthHeaderToken', () => {
   });
 
   it.each(['', 'blarg 999', '12345'])(
-    'returns null if the bearer token is malformed',
+    'given a request with an authorization header of: "$0" (i.e. malformed), returns null',
     (malformedBearerToken) => {
       expect(
         extractAuthHeaderToken({
