@@ -1,8 +1,8 @@
 import * as createResponseBody from '@repo/response-json';
 import { createValidationErrors } from '@repo/validation/zod';
-import * as bcryptjs from 'bcryptjs';
 import type { RequestHandler } from 'express';
 import { client as db } from '../../db/client.mjs';
+import { hash } from '../../ext/password.mjs';
 import { chains } from '../../schemas/serverUser.mjs';
 
 export const post: RequestHandler = async (req, res, next) => {
@@ -18,14 +18,13 @@ export const post: RequestHandler = async (req, res, next) => {
         );
     }
 
-    const validatedData = parseResult.data;
-    const hash = await bcryptjs.hash(validatedData.password, 10);
+    const { handle, displayName, password } = parseResult.data;
 
     await db.user.create({
       data: {
-        handle: validatedData.handle,
-        displayName: validatedData.displayName,
-        hash,
+        handle,
+        displayName,
+        hash: hash(password),
       },
     });
 
