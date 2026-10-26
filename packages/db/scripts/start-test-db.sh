@@ -13,6 +13,8 @@ exit_on_fail
 # Start database and detach from terminal.
 echo "Starting docker containers..."
 docker compose up -d
+# Since container gets detached, need to wait.
+wait
 exit_on_fail
 
 # Set up the containerized database.
