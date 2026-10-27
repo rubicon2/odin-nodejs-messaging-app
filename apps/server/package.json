@@ -27,6 +27,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/supertest": "^7.2.1",
     "jiti": "^2.7.0",
+    "node-mocks-http": "^1.18.1",
     "supertest": "^7.3.1",
     "tsc-watch": "^7.2.1",
     "typescript": "^7.0.2",
