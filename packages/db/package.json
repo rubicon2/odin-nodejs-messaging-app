@@ -23,9 +23,8 @@
     "lint": "pnpm biome check",
     "lint:fix": "pnpm biome check --write",
     "generate": "pnpm prisma generate",
-    "load-test-env": "pnpm exec dotenv run --file .env.test,.env",
-    "test:start": "pnpm load-test-env -- ./scripts/start-test-db.sh",
-    "test:stop": "pnpm load-test-env -- ./scripts/stop-test-db.sh"
+    "test:start": "pnpm dotenv run --file .env.test,.env -- ./scripts/start-test-db.sh",
+    "test:stop": "./scripts/stop-test-db.sh"
   },
   "packageManager": "pnpm@10.30.3",
   "devDependencies": {
