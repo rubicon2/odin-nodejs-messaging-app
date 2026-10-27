@@ -1,6 +1,8 @@
+import * as createResponseBody from '@repo/response-json';
 import type { RequestHandler } from 'express';
 import type jwt from 'jsonwebtoken';
 import { extractAuthHeaderToken } from '../ext/extractAuthHeaderToken.mjs';
+import * as tokenUtils from '../ext/tokens.mjs';
 
 declare global {
   namespace Express {
@@ -36,4 +38,20 @@ export const getRefreshToken: RequestHandler = (req, _res, next) => {
   const jwt = req.cookies.refresh;
   if (jwt) req.token = jwt;
   return next();
+};
+
+export const verifyToken: RequestHandler = (req, _res, next) => {
+  try {
+    const token = req.token;
+    if (token === undefined) return next();
+
+    const verifyResult = tokenUtils.verifyToken(token);
+    if (verifyResult.success) {
+      req.tokenData = verifyResult.data;
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };
