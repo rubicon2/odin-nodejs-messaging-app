@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mjs';
-import * as password from '../../../src/ext/password.mjs';
 import { chains, refinements } from '../../../src/schemas/serverAuth.mjs';
 import * as dbHelpers from '../../helpers/db.mjs';
+import { dbUserData } from '../../helpers/dbData.mjs';
 import { userData } from '../../helpers/postData.mts';
 
 const loginData = {
@@ -32,11 +32,7 @@ describe('refinements', () => {
     describe('returned refinement', () => {
       it('returns true if handle and hash of password match those on database', async () => {
         await db.user.create({
-          data: {
-            handle: userData.handle,
-            displayName: userData.displayName,
-            hash: password.hash(userData.password),
-          },
+          data: dbUserData
         });
 
         const result = await refinements.doHandleAndPasswordMatch()(loginData);
@@ -45,11 +41,7 @@ describe('refinements', () => {
 
       it('returns false if handle exists, but hash of password does not match', async () => {
         await db.user.create({
-          data: {
-            handle: userData.handle,
-            displayName: userData.displayName,
-            hash: password.hash('correct password'),
-          },
+          data: dbUserData
         });
 
         const result = await refinements.doHandleAndPasswordMatch()({
@@ -76,11 +68,7 @@ describe('chains', () => {
     describe('returned chain', () => {
       it('returns parsed data if handle and password match', async () => {
         await db.user.create({
-          data: {
-            handle: userData.handle,
-            displayName: userData.displayName,
-            hash: password.hash(userData.password),
-          },
+          data: dbUserData
         });
 
         const parsed = await chains.login().parseAsync(loginData);
@@ -89,11 +77,7 @@ describe('chains', () => {
 
       it('returns error if handle and password do not match', async () => {
         await db.user.create({
-          data: {
-            handle: userData.handle,
-            displayName: 'whatever',
-            hash: password.hash('correct password'),
-          },
+          data: dbUserData
         });
 
         await expect(() =>

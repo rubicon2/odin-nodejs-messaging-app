@@ -1,4 +1,5 @@
 import type { Prisma } from '@repo/db/prisma/client';
+import * as password from '../../src/ext/password.mjs';
 import * as postData from './postData.mjs';
 
 export const dbUserData: Prisma.UserModel = {
@@ -7,5 +8,5 @@ export const dbUserData: Prisma.UserModel = {
   updatedAt: new Date(Date.now()),
   handle: postData.userData.handle,
   displayName: postData.userData.displayName,
-  hash: '12345',
+  hash: password.hash(postData.userData.password),
 };
