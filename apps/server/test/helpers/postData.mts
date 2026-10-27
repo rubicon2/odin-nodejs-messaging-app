@@ -7,5 +7,5 @@ export const userData = {
 
 export const loginData = {
   handle: userData.handle,
-  password: userData.password
-}
+  password: userData.password,
+};

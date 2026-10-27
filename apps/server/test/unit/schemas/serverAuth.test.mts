@@ -32,7 +32,7 @@ describe('refinements', () => {
     describe('returned refinement', () => {
       it('returns true if handle and hash of password match those on database', async () => {
         await db.user.create({
-          data: dbUserData
+          data: dbUserData,
         });
 
         const result = await refinements.doHandleAndPasswordMatch()(loginData);
@@ -41,7 +41,7 @@ describe('refinements', () => {
 
       it('returns false if handle exists, but hash of password does not match', async () => {
         await db.user.create({
-          data: dbUserData
+          data: dbUserData,
         });
 
         const result = await refinements.doHandleAndPasswordMatch()({
@@ -68,7 +68,7 @@ describe('chains', () => {
     describe('returned chain', () => {
       it('returns parsed data if handle and password match', async () => {
         await db.user.create({
-          data: dbUserData
+          data: dbUserData,
         });
 
         const parsed = await chains.login().parseAsync(loginData);
@@ -77,7 +77,7 @@ describe('chains', () => {
 
       it('returns error if handle and password do not match', async () => {
         await db.user.create({
-          data: dbUserData
+          data: dbUserData,
         });
 
         await expect(() =>
