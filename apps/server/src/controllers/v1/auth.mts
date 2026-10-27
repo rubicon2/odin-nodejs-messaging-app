@@ -53,3 +53,31 @@ export const login: RequestHandler = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const logout: RequestHandler = async (_req, res, next) => {
+  try {
+    /**
+     * Since tokens are not stored on the server, we cannot invalidate.
+     * We can remove the refresh token by clearing the cookie, but it
+     * is up to the client to delete their access token. This means if a
+     * user somehow keeps a copy of the access token, they will be able
+     * to continue using it until it expires, but given that access
+     * tokens should be short-lived, and they would have had to login
+     * successfully, or have access to a valid refresh token to get an
+     * access token anyway. To sum up: not a huge deal.
+     *
+     * But keeping track of the tokens associated with a user does have
+     * benefits, like being able to keep track of active refresh tokens, and
+     * invalidate a bunch of tokens for a user (i.e. log out a user from
+     * all devices), or trigger a two-factor authentication check if a
+     * token is requested by an unusual ip address. That would also
+     * require keeping track of the ips that tokens are issued to.
+     *
+     * But that kind of stuff is not required for this project.
+     */
+    res.clearCookie('refresh');
+    return res.json(createResponseBody.success({}, 'Successfully logged out'));
+  } catch (error) {
+    return next(error);
+  }
+};
