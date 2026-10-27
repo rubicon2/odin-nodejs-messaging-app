@@ -2,7 +2,7 @@ import * as z from 'zod';
 import 'dotenv/config';
 
 const envSchema = z.object({
-  COOKIE_DOMAIN: z.url(),
+  COOKIE_DOMAIN: z.string(),
   COOKIE_SAME_SITE: z
     .string()
     .refine((v) => {
