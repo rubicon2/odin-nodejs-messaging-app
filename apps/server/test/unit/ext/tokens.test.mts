@@ -93,21 +93,23 @@ describe('verifyToken', () => {
     const token = createAccessToken(user);
 
     expect(verifyToken(token)).toStrictEqual({
-      success: true, data: {
-      id: user.id,
-      handle: user.handle,
-      type: 'ACCESS',
-      jti: expect.any(String),
-      iat: expect.any(Number),
-      exp: expect.any(Number),}
+      success: true,
+      data: {
+        id: user.id,
+        handle: user.handle,
+        type: 'ACCESS',
+        jti: expect.any(String),
+        iat: expect.any(Number),
+        exp: expect.any(Number),
+      },
     });
   });
 
   it('given an invalid token, returns { success: false, error }', () => {
     expect(verifyToken('12345')).toStrictEqual({
       success: false,
-      error: new jwt.JsonWebTokenError('jwt malformed')
-    })
+      error: new jwt.JsonWebTokenError('jwt malformed'),
+    });
   });
 
   it('given an expired token, returns { success: false, error }', () => {
