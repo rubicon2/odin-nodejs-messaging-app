@@ -50,12 +50,45 @@ export function createRefreshToken(user: UserResource): string {
   });
 }
 
-/**
- * If the jsonwebtoken library fails to verify the token
- * (e.g., expired or been tampered with), this will throw
- * an error.
- */
-export function verifyToken(token: string): jwt.JwtPayload {
-  const verified = jwt.verify(token, env.JWT_SECRET) as jwt.JwtPayload;
-  return verified;
+export interface VerifyTokenSuccess {
+  success: true;
+  data: jwt.JwtPayload;
+}
+
+export interface VerifyTokenFail {
+  success: false;
+  error: Error;
+}
+
+export type VerifyTokenResponse = VerifyTokenSuccess | VerifyTokenFail;
+
+export function verifyToken(token: string): VerifyTokenResponse {
+  /**
+   * If the jsonwebtoken library fails to verify the token
+   * (e.g., expired or been tampered with), it will throw
+   * an error. We will catch here and return an object with
+   * the error message instead. Consumers can just check
+   * the success value and via discriminated unions, the
+   * type checker will know if data or error is present
+   * on the object. I think this is preferable to having
+   * to wrap every call to this function in a try/catch.
+   */
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as jwt.JwtPayload;
+    return { success: true, data: decoded };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { success: false, error };
+    }
+
+    if (typeof error === 'string') {
+      return { success: false, error: new Error(error) };
+    }
+
+    // If error was not an instance of Error or a string.
+    return {
+      success: false,
+      error: new Error('Unknown error occurred in verifyToken'),
+    };
+  }
 }

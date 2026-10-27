@@ -4,6 +4,7 @@ import type { UserResource } from '../../../src/db/userResource.mts';
 import {
   createAccessToken,
   createRefreshToken,
+  verifyToken,
 } from '../../../src/ext/tokens.mjs';
 import { env } from '../../../src/schemas/env.mts';
 
@@ -87,6 +88,45 @@ describe('createRefreshToken', () => {
   });
 });
 
-// Don't bother testing verifyToken, since all it does is
-// pass a secret to the jwt.verifyToken function. Effectively,
-// we would just be testing the jwt.verifyToken function.
+describe('verifyToken', () => {
+  it('given a valid token, returns { success: true, data }', () => {
+    const token = createAccessToken(user);
+
+    expect(verifyToken(token)).toStrictEqual({
+      success: true, data: {
+      id: user.id,
+      handle: user.handle,
+      type: 'ACCESS',
+      jti: expect.any(String),
+      iat: expect.any(Number),
+      exp: expect.any(Number),}
+    });
+  });
+
+  it('given an invalid token, returns { success: false, error }', () => {
+    expect(verifyToken('12345')).toStrictEqual({
+      success: false,
+      error: new jwt.JsonWebTokenError('jwt malformed')
+    })
+  });
+
+  it('given an expired token, returns { success: false, error }', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    const token = createAccessToken(user);
+    vi.advanceTimersByTime(env.JWT_ACCESS_MAX_AGE);
+
+    const expiredDate = vi.getMockedSystemTime();
+    // If we have forgotten to mock the Date, mocked time will be null.
+    expect(expiredDate).not.toBeNull();
+
+    expect(verifyToken(token)).toStrictEqual({
+      success: false,
+      // @ts-expect-error -- We have asserted that expiredDate is not null.
+      error: new jwt.TokenExpiredError('jwt expired', expiredDate),
+    });
+
+    vi.useRealTimers();
+  });
+});
