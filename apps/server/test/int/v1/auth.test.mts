@@ -52,3 +52,35 @@ describe(`${baseUrl}/login`, () => {
     });
   });
 });
+
+describe(`${baseUrl}/logout`, () => {
+  const url = `${baseUrl}/logout`;
+
+  describe('POST', () => {
+    it('returns status code 200 and a message in the body', async () => {
+      const response = await request(server).post(url);
+
+      expect(response.status).toStrictEqual(200);
+      expect(response.body).toStrictEqual({
+        status: 'success',
+        message: 'Successfully logged out',
+        data: {},
+      });
+    });
+
+    it('returns a set-cookie header to clear the refresh cookie', async () => {
+      const response = await request(server).post(url);
+
+      const cookieHeaders = response.headers[
+        'set-cookie'
+      ] as unknown as string[];
+      expect(cookieHeaders).toBeDefined();
+
+      const refreshCookie = cookieHeaders.find((cookieHeader) =>
+        cookieHeader.includes('refresh'),
+      );
+      expect(refreshCookie).toBeDefined();
+      expect(refreshCookie).toMatch(/^refresh=;/);
+    });
+  });
+});
