@@ -1,24 +1,23 @@
-import type { Request } from 'express';
+import { createRequest, createResponse } from 'node-mocks-http';
 import { describe, expect, it, vi } from 'vitest';
 import {
   getAccessToken,
   getRefreshToken,
+  verifyToken,
 } from '../../../src/middleware/tokens.mjs';
 
 describe('getAccessToken', () => {
   it('given a request with a valid auth bearer header, puts the token onto req.token', async () => {
     const token = '12345';
 
-    // @ts-expect-error -- Middleware only uses this header.
-    const req: Request = {
+    const req = createRequest({
       headers: {
         authorization: `Bearer ${token}`,
       },
-    };
-    const res = {};
+    });
+    const res = createResponse();
     const next = vi.fn();
 
-    // @ts-expect-error -- Middleware does not use response object.
     getAccessToken(req, res, next);
 
     expect(req.token).toStrictEqual(token);
@@ -27,16 +26,14 @@ describe('getAccessToken', () => {
   it.each(['Bearer12345', '', undefined])(
     'given a request with an auth header of: $0, does nothing',
     (badToken) => {
-      // @ts-expect-error -- Middleware only uses this header.
-      const req: Request = {
+      const req = createRequest({
         headers: {
           authorization: badToken,
         },
-      };
-      const res = {};
+      });
+      const res = createResponse();
       const next = vi.fn();
 
-      // @ts-expect-error -- Middleware does not use response object.
       getAccessToken(req, res, next);
 
       expect(req.token).toBeUndefined();
@@ -48,37 +45,40 @@ describe('getRefreshToken', () => {
   it('given a request with a valid refresh cookie token, puts it onto req.token', async () => {
     const token = '12345';
 
-    // @ts-expect-error -- Middleware only uses this header.
-    const req: Request = {
+    const req = createRequest({
       cookies: {
         refresh: token,
       },
-    };
-    const res = {};
+    });
+    const res = createResponse();
     const next = vi.fn();
 
-    // @ts-expect-error -- Middleware does not use response object.
     getRefreshToken(req, res, next);
 
     expect(req.token).toStrictEqual(token);
   });
 
-  it.each(['', undefined])(
-    'given a request with an auth header of: $0, does nothing',
-    (badToken) => {
-      // @ts-expect-error -- Middleware only uses this header.
-      const req: Request = {
-        cookies: {
-          refresh: badToken,
-        },
-      };
-      const res = {};
-      const next = vi.fn();
+  it('given a request with an empty refresh cookie, does nothing', () => {
+    const req = createRequest({
+      cookies: {
+        refresh: '',
+      },
+    });
+    const res = createResponse();
+    const next = vi.fn();
 
-      // @ts-expect-error -- Middleware does not use response object.
-      getRefreshToken(req, res, next);
+    getRefreshToken(req, res, next);
 
-      expect(req.token).toBeUndefined();
-    },
-  );
+    expect(req.token).toBeUndefined();
+  });
+
+  it('given a request with no refresh cookie, does nothing', () => {
+    const req = createRequest();
+    const res = createResponse();
+    const next = vi.fn();
+
+    getRefreshToken(req, res, next);
+
+    expect(req.token).toBeUndefined();
+  });
 });
