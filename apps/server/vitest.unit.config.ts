@@ -1,5 +1,11 @@
+import path from 'node:path';
 import { unitConfig } from '@repo/vitest-config/unit';
+import dotenv from 'dotenv';
 import { defineConfig, mergeConfig } from 'vitest/config';
+
+dotenv.config({
+  path: path.resolve(process.cwd(), '.env.test'),
+});
 
 /**
  * Some of the unit tests rely on the prisma client/database.
