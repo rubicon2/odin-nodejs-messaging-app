@@ -3,12 +3,13 @@ import { PrismaClient } from './generated/prisma/client.js';
 import 'dotenv/config';
 
 /**
- * Was considering passing a connection string as a parameter
- * as demonstrated in some prisma examples, but isn't this
- * entire package tied to the database url in its own env
- * file since it is used in the prisma config?
+ * Prisma doesn't bake in env variables when
+ * building the client, so can pass a connection
+ * string from the consuming package.
  */
-export function createClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+export function createClient(connectionString?: string): PrismaClient {
+  const adapter = new PrismaPg({
+    connectionString: connectionString ?? process.env.DATABASE_URL,
+  });
   return new PrismaClient({ adapter });
 }
