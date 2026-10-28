@@ -1,8 +1,8 @@
 import { createRequest, createResponse } from 'node-mocks-http';
 import { describe, expect, it, vi } from 'vitest';
-import { isAuth } from '../../../src/middleware/auth.mjs';
+import { isAuthenticated } from '../../../src/middleware/auth.mjs';
 
-describe('isAuth', () => {
+describe('isAuthenticated', () => {
   it('given a request with req.tokenData, calls the next function', () => {
     const req = createRequest({
       tokenData: '12345',
@@ -10,7 +10,7 @@ describe('isAuth', () => {
     const res = createResponse();
     const next = vi.fn();
 
-    isAuth(req, res, next);
+    isAuthenticated(req, res, next);
 
     expect(next).toHaveBeenCalled();
   });
@@ -20,7 +20,7 @@ describe('isAuth', () => {
     const res = createResponse();
     const next = vi.fn();
 
-    isAuth(req, res, next);
+    isAuthenticated(req, res, next);
 
     it('does not call the next function', () => {
       expect(next).not.toHaveBeenCalled();
