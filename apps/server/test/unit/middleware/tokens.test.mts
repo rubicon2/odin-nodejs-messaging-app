@@ -19,7 +19,7 @@ const user: UserResource = {
 };
 
 describe('getAccessToken', () => {
-  it('given a request with a valid auth bearer header, puts the token onto req.token', async () => {
+  it('given a request with a valid auth bearer header, puts its content onto req.token', async () => {
     const token = '12345';
 
     const req = createRequest({
@@ -54,7 +54,7 @@ describe('getAccessToken', () => {
 });
 
 describe('getRefreshToken', () => {
-  it('given a request with a valid refresh cookie token, puts it onto req.token', async () => {
+  it('given a request with a refresh cookie, puts its content onto req.token', async () => {
     const token = '12345';
 
     const req = createRequest({
