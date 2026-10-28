@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { isAuth } from '../../../src/middleware/auth.mjs';
 
 describe('isAuth', () => {
-  it('given a request with req.tokenData', () => {
+  it('given a request with req.tokenData, calls the next function', () => {
     const req = createRequest({
       tokenData: '12345',
     });
