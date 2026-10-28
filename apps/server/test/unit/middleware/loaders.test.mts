@@ -62,3 +62,103 @@ describe('loadUser', () => {
     expect(next).toHaveBeenCalledWith(new Error('req.tokenData is undefined'));
   });
 });
+
+describe('loadResource', () => {
+  it('given a paramName and loader function, calls the loader function with the param value and puts the result in req.resource, then calls next function', async () => {
+    const paramName = 'myParam';
+    const paramValue = 'abc';
+    const resource = '123';
+
+    const req = createRequest({
+      url: '/resource/1',
+      params: {
+        [paramName]: paramValue,
+      },
+    });
+    const res = createResponse();
+    const next = vi.fn();
+
+    const mockLoader = vi.fn().mockImplementation(() => {
+      return resource;
+    });
+
+    const loaderMiddleware = loaders.loadResource(paramName, mockLoader);
+
+    await loaderMiddleware(req, res, next);
+
+    expect(mockLoader).toHaveBeenCalled();
+    expect(mockLoader).toHaveBeenCalledWith(paramValue);
+    expect(req.resource).toStrictEqual(resource);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('given a paramName that corresponds to no params, calls next function with an error', async () => {
+    const paramName = 'myParam';
+
+    const req = createRequest();
+    const res = createResponse();
+    const next = vi.fn();
+    const mockLoader = vi.fn();
+
+    const loaderMiddleware = loaders.loadResource(paramName, mockLoader);
+
+    await loaderMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(
+      new Error(`req.params.${paramName} is undefined`),
+    );
+    expect(mockLoader).not.toHaveBeenCalled();
+  });
+
+  it('given a paramName that occurs multiple times, calls next function with an error', async () => {
+    const paramName = 'myParam';
+
+    const req = createRequest({
+      params: {
+        [paramName]: ['1', '2', '3'],
+      },
+    });
+    const res = createResponse();
+    const next = vi.fn();
+    const mockLoader = vi.fn();
+
+    const loaderMiddleware = loaders.loadResource(paramName, mockLoader);
+
+    await loaderMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(
+      new Error(
+        `req.params.${paramName} is an array. There should only be one instance of ${paramName} in the URL`,
+      ),
+    );
+    expect(mockLoader).not.toHaveBeenCalled();
+  });
+
+  it.each([null, undefined])(
+    'given a loader that returns $0, returns status code 404 and a message',
+    async (loaderReturnValue) => {
+      const paramName = 'myParam';
+
+      const req = createRequest({
+        params: {
+          [paramName]: '12345',
+        },
+      });
+      const res = createResponse();
+      const next = vi.fn();
+      const mockLoader = vi.fn().mockImplementation(() => loaderReturnValue);
+
+      const loaderMiddleware = loaders.loadResource(paramName, mockLoader);
+
+      await loaderMiddleware(req, res, next);
+
+      expect(res.statusCode).toStrictEqual(404);
+      expect(res._getJSONData()).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    },
+  );
+});
