@@ -162,3 +162,27 @@ describe('loadResource', () => {
     },
   );
 });
+
+describe('loadUserResource', () => {
+  it('given a valid user id, returns the user with the expected fields', async () => {
+    await db.user.create({
+      data: dbUserData,
+    });
+
+    const user = await loaders.loadUserResource(dbUserData.id);
+
+    expect(user).toStrictEqual({
+      // Password hash should not be included.
+      id: dbUserData.id,
+      handle: dbUserData.handle,
+      displayName: dbUserData.displayName,
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
+  });
+
+  it('given an invalid user id, returns null', async () => {
+    const user = await loaders.loadUserResource('invalid-id');
+    expect(user).toBeNull();
+  });
+});
