@@ -44,6 +44,17 @@ export const loadUser: RequestHandler = async (req, _res, next) => {
  */
 type ResourceLoader = (resourceId: string) => unknown;
 
+export const loadUserResource: ResourceLoader = async (resourceId: string) => {
+  const user = await db.user.findUnique({
+    where: {
+      id: resourceId,
+    },
+    omit: userResourceOmit,
+  });
+
+  return user;
+};
+
 export const loadResource =
   (paramName: string, loader: ResourceLoader): RequestHandler =>
   async (req, res, next) => {
