@@ -19,7 +19,7 @@ const user: UserResource = {
 };
 
 describe('getAccessToken', () => {
-  it('given a request with a valid auth bearer header, puts its content onto req.token', async () => {
+  it('given a request with a valid auth bearer header, puts its content onto req.token and calls next function', async () => {
     const token = '12345';
 
     const req = createRequest({
@@ -33,10 +33,11 @@ describe('getAccessToken', () => {
     getAccessToken(req, res, next);
 
     expect(req.token).toStrictEqual(token);
+    expect(next).toHaveBeenCalled();
   });
 
   it.each(['Bearer12345', '', undefined])(
-    'given a request with an auth header of: $0, does nothing',
+    'given a request with an auth header of: $0, does nothing and calls the next function',
     (badToken) => {
       const req = createRequest({
         headers: {
@@ -49,12 +50,13 @@ describe('getAccessToken', () => {
       getAccessToken(req, res, next);
 
       expect(req.token).toBeUndefined();
+      expect(next).toHaveBeenCalled();
     },
   );
 });
 
 describe('getRefreshToken', () => {
-  it('given a request with a refresh cookie, puts its content onto req.token', async () => {
+  it('given a request with a refresh cookie, puts its content onto req.token and calls the next function', async () => {
     const token = '12345';
 
     const req = createRequest({
@@ -68,9 +70,10 @@ describe('getRefreshToken', () => {
     getRefreshToken(req, res, next);
 
     expect(req.token).toStrictEqual(token);
+    expect(next).toHaveBeenCalled();
   });
 
-  it('given a request with an empty refresh cookie, does nothing', () => {
+  it('given a request with an empty refresh cookie, does nothing and calls the next function', () => {
     const req = createRequest({
       cookies: {
         refresh: '',
@@ -82,9 +85,10 @@ describe('getRefreshToken', () => {
     getRefreshToken(req, res, next);
 
     expect(req.token).toBeUndefined();
+    expect(next).toHaveBeenCalled();
   });
 
-  it('given a request with no refresh cookie, does nothing', () => {
+  it('given a request with no refresh cookie, does nothing and calls the next function', () => {
     const req = createRequest();
     const res = createResponse();
     const next = vi.fn();
@@ -92,64 +96,69 @@ describe('getRefreshToken', () => {
     getRefreshToken(req, res, next);
 
     expect(req.token).toBeUndefined();
+    expect(next).toHaveBeenCalled();
   });
 });
 
 describe('verifyToken', () => {
-  describe('returned middleware function', () => {
-    it('given a request with a valid req.token, puts decoded data onto req.tokenData', async () => {
-      const token = createAccessToken(user);
-      const req = createRequest({
-        token,
-      });
-      const res = createResponse();
-      const next = vi.fn();
-
-      verifyToken(req, res, next);
-
-      expect(req.tokenData).toStrictEqual(jwt.decode(token));
+  it('given a request with a valid req.token, puts decoded data onto req.tokenData and calls the next function', async () => {
+    const token = createAccessToken(user);
+    const req = createRequest({
+      token,
     });
+    const res = createResponse();
+    const next = vi.fn();
 
-    it('given a request with an invalid req.token, does nothing', async () => {
-      const req = createRequest({
-        token: '12345',
-      });
-      const res = createResponse();
-      const next = vi.fn();
+    verifyToken(req, res, next);
 
-      verifyToken(req, res, next);
-      expect(req.tokenData).toBeUndefined();
+    expect(req.tokenData).toStrictEqual(jwt.decode(token));
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('given a request with an invalid req.token, does nothing and calls the next function', async () => {
+    const req = createRequest({
+      token: '12345',
     });
+    const res = createResponse();
+    const next = vi.fn();
 
-    it('given a request with an expired req.token, does nothing', async () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(0);
+    verifyToken(req, res, next);
 
-      const token = createAccessToken(user);
-      vi.advanceTimersByTime(env.JWT_ACCESS_MAX_AGE);
+    expect(req.tokenData).toBeUndefined();
+    expect(next).toHaveBeenCalled();
+  });
 
-      const expiredDate = vi.getMockedSystemTime();
-      expect(expiredDate).not.toBeNull();
+  it('given a request with an expired req.token, does nothing and calls the next function', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
 
-      const req = createRequest({
-        token,
-      });
-      const res = createResponse();
-      const next = vi.fn();
+    const token = createAccessToken(user);
+    vi.advanceTimersByTime(env.JWT_ACCESS_MAX_AGE);
 
-      verifyToken(req, res, next);
-      expect(req.tokenData).toBeUndefined();
+    const expiredDate = vi.getMockedSystemTime();
+    expect(expiredDate).not.toBeNull();
 
-      vi.useRealTimers();
+    const req = createRequest({
+      token,
     });
+    const res = createResponse();
+    const next = vi.fn();
 
-    it('given a request with no req.token, does nothing', async () => {
-      const req = createRequest();
-      const res = createResponse();
-      const next = vi.fn();
+    verifyToken(req, res, next);
+    expect(req.tokenData).toBeUndefined();
+    expect(next).toHaveBeenCalled();
 
-      verifyToken(req, res, next);
-      expect(req.tokenData).toBeUndefined();
-    });
+    vi.useRealTimers();
+  });
+
+  it('given a request with no req.token, does nothing and calls the next function', async () => {
+    const req = createRequest();
+    const res = createResponse();
+    const next = vi.fn();
+
+    verifyToken(req, res, next);
+
+    expect(req.tokenData).toBeUndefined();
+    expect(next).toHaveBeenCalled();
   });
 });
