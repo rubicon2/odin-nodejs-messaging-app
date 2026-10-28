@@ -6,6 +6,49 @@ import { createAccessToken, createRefreshToken } from '../../ext/tokens.mjs';
 import { env } from '../../schemas/env.mjs';
 import { chains } from '../../schemas/serverAuth.mjs';
 
+export const access: RequestHandler = async (req, res, next) => {
+  try {
+    /**
+     * If we reach this function, the refresh token should
+     * already have been verified by existing middleware.
+     */
+    if (req.tokenData === undefined) {
+      throw new Error(
+        'req.tokenData is undefined, did you forget to use getCookieToken or verifyToken middleware?',
+      );
+    }
+
+    /**
+     * If we are going to add refresh token rotation, a new model
+     * will be required on prisma, called "RevokedToken", which
+     * will store the jit of the token. Also keep track of the
+     * expiration date, so we can periodically clear expired
+     * tokens from the table, since expired tokens would fail
+     * to verify anyway.
+     *
+     * Without token rotation, all this handler does is check
+     * the user exists and return a fresh access token.
+     */
+
+    const user = await db.user.findUnique({
+      where: {
+        handle: req.tokenData.handle,
+      },
+    });
+
+    if (!user) {
+      return res
+        .status(401)
+        .json(createResponseBody.fail('User does not exist'));
+    }
+
+    const accessToken = createAccessToken(user);
+    return res.json(createResponseBody.successSingle(accessToken));
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const login: RequestHandler = async (req, res, next) => {
   try {
     const parseResult = await chains.login().safeParseAsync(req.body);
