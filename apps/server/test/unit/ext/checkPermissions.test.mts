@@ -1,0 +1,49 @@
+import { createRequest } from 'node-mocks-http';
+import { describe, expect, it } from 'vitest';
+import * as checkPermissions from '../../../src/ext/checkPermissions.mjs';
+
+describe('canUpdateUser', () => {
+  describe('given a request containing a user and resource', () => {
+    it('returns true if user id and resource id are the same', () => {
+      const req = createRequest({
+        user: {
+          id: '1',
+        },
+        resource: {
+          id: '1',
+        },
+      });
+
+      expect(checkPermissions.canUpdateUser(req)).toStrictEqual(true);
+    });
+
+    it('returns false if user id and resource id are not the same', () => {
+      const req = createRequest({
+        user: {
+          id: '1',
+        },
+        resource: {
+          id: '2',
+        },
+      });
+
+      expect(checkPermissions.canUpdateUser(req)).toStrictEqual(false);
+    });
+  });
+
+  it('given a request with no user, throws an error', () => {
+    const req = createRequest();
+    expect(() => checkPermissions.canUpdateUser(req)).toThrow(
+      'req.user is undefined',
+    );
+  });
+
+  it('given a request with no resource, throws an error', () => {
+    const req = createRequest({
+      user: {},
+    });
+    expect(() => checkPermissions.canUpdateUser(req)).toThrow(
+      'req.resource is undefined',
+    );
+  });
+});

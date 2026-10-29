@@ -1,4 +1,6 @@
 import type { Request } from 'express';
+import type { UserResource } from '../db/userResource.mjs';
+import type { CheckPermissionsFunction } from '../middleware/permissions.mjs';
 
 /**
  * Just a convenience function so we don't
@@ -43,3 +45,11 @@ function getUserAndResource<T>(req: Request) {
   const resource = getResource<T>(req);
   return { user, resource };
 }
+
+/**
+ * User is only allowed to update themselves.
+ */
+export const canUpdateUser: CheckPermissionsFunction = (req) => {
+  const { user, resource } = getUserAndResource<UserResource>(req);
+  return user.id === resource.id;
+};
