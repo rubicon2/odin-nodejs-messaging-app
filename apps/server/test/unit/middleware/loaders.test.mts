@@ -36,7 +36,7 @@ describe('loadUser', () => {
     expect(next).toHaveBeenCalled();
   });
 
-  it('given a request with req.tokenData containing an invalid handle, calls next with an error', async () => {
+  it('given a request with req.tokenData containing an invalid handle, returns status code 401 and a message', async () => {
     const req = createRequest({
       tokenData: {
         handle: 'invalid_handle',
@@ -47,8 +47,11 @@ describe('loadUser', () => {
 
     await loaders.loadUser(req, res, next);
 
-    expect(next).toHaveBeenCalled();
-    expect(next).toHaveBeenCalledWith(new Error('User does not exist'));
+    expect(res.statusCode).toStrictEqual(401);
+    expect(res._getJSONData()).toStrictEqual({
+      status: 'fail',
+      message: 'User does not exist',
+    });
   });
 
   it('given a request with no req.tokenData, calls next with an error', async () => {
