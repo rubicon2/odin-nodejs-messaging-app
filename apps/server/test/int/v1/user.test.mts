@@ -192,12 +192,26 @@ describe('POST', () => {
       expect(response.status).toStrictEqual(200);
     });
 
-    it('returns a success message', async () => {
+    it('returns a success message and the created user, sans hash', async () => {
       const response = await request(server).post(baseUrl).send(userData);
       expect(response.body).toStrictEqual({
         status: 'success',
         message: 'User successfully created',
-        data: {},
+        data: {
+          item: {
+            handle: userData.handle,
+            displayName: userData.displayName,
+            id: expect.any(String),
+            /**
+             * Dates are returned in response, but in string format.
+             * This means the resource types in /src/db are wrong
+             * for the client. The data will leave the server
+             * as a Date, but reach the client as a string.
+             */
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          },
+        },
       });
     });
 

@@ -2,6 +2,8 @@ import * as createResponseBody from '@repo/response-json';
 import { createValidationErrors } from '@repo/validation/zod';
 import type { RequestHandler } from 'express';
 import { client as db } from '../../db/client.mjs';
+import type { UserResource } from '../../db/userResource.mjs';
+import { userResourceOmit } from '../../db/userResource.mjs';
 import { hash } from '../../ext/password.mjs';
 import { chains } from '../../schemas/serverUser.mjs';
 
@@ -20,16 +22,17 @@ export const post: RequestHandler = async (req, res, next) => {
 
     const { handle, displayName, password } = parseResult.data;
 
-    await db.user.create({
+    const user: UserResource = await db.user.create({
       data: {
         handle,
         displayName,
         hash: hash(password),
       },
+      omit: userResourceOmit,
     });
 
     return res.send(
-      createResponseBody.success({}, 'User successfully created'),
+      createResponseBody.successSingle(user, 'User successfully created'),
     );
   } catch (error) {
     return next(error);
