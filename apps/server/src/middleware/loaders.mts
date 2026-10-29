@@ -78,7 +78,7 @@ export const loadResource =
 
       // If the resource is not present, then the id is not valid.
       if (!resource) {
-        res.status(404).json(createResponseBody.fail('Not found'));
+        return res.status(404).json(createResponseBody.fail('Not found'));
       }
 
       // Otherwise, call the next middleware with the loaded resource.
