@@ -10,11 +10,12 @@ export const access: RequestHandler = async (req, res, next) => {
   try {
     /**
      * If we reach this function, the refresh token should
-     * already have been verified by existing middleware.
+     * already have been verified by existing middleware
+     * and user loaded into req.user.
      */
-    if (req.tokenData === undefined) {
+    if (req.user === undefined) {
       throw new Error(
-        'req.tokenData is undefined, did you forget to use getCookieToken or verifyToken middleware?',
+        'req.user is undefined, did you forget to use loadUser middleware?',
       );
     }
 
@@ -26,23 +27,11 @@ export const access: RequestHandler = async (req, res, next) => {
      * tokens from the table, since expired tokens would fail
      * to verify anyway.
      *
-     * Without token rotation, all this handler does is check
-     * the user exists and return a fresh access token.
+     * Without token rotation, all this handler does
+     * return a fresh access token for the req.user.
      */
 
-    const user = await db.user.findUnique({
-      where: {
-        handle: req.tokenData.handle,
-      },
-    });
-
-    if (!user) {
-      return res
-        .status(401)
-        .json(createResponseBody.fail('User does not exist'));
-    }
-
-    const accessToken = createAccessToken(user);
+    const accessToken = createAccessToken(req.user);
     return res.json(createResponseBody.successSingle(accessToken));
   } catch (error) {
     return next(error);

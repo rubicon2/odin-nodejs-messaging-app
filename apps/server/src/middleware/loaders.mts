@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-export const loadUser: RequestHandler = async (req, _res, next) => {
+export const loadUser: RequestHandler = async (req, res, next) => {
   try {
     if (req.tokenData === undefined) {
       throw new Error('req.tokenData is undefined');
@@ -27,7 +27,9 @@ export const loadUser: RequestHandler = async (req, _res, next) => {
     });
 
     if (!user) {
-      throw new Error('User does not exist');
+      return res
+        .status(401)
+        .json(createResponseBody.fail('User does not exist'));
     }
 
     req.user = user;
