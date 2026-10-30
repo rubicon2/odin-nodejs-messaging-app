@@ -10,9 +10,7 @@ import { client as db } from '../db/client.mjs';
 // user's handles, not the handle of the user we are updating).
 const isHandleAvailable =
   (ignoreIds: string[] = []) =>
-  async (data: { handle?: string }) => {
-    if (data.handle === undefined) return false;
-
+  async (data: { handle: string }) => {
     const existingHandle = await db.user.findFirst({
       where: {
         id: {
@@ -37,10 +35,17 @@ const signup = () =>
 const updateAll = (ignoreIds: string[] = []) =>
   coreChains.updateAll.refine(isHandleAvailable(ignoreIds), handleTakenError);
 const updatePartial = (ignoreIds: string[] = []) =>
-  coreChains.updatePartial.refine(
-    isHandleAvailable(ignoreIds),
-    handleTakenError,
-  );
+  coreChains.updatePartial.refine((data) => {
+    /**
+     * Unpacking handle so after undefined check, type is string.
+     * Type inference doesn't work on data object and giving it
+     * straight to isHandleAvailable refinement gives a type error.
+     */
+    const handle = data.handle;
+    // If undefined, then skip isHandleAvailable check since we are not updating it.
+    if (handle === undefined) return true;
+    else return isHandleAvailable(ignoreIds)({ handle });
+  }, handleTakenError);
 
 export const refinements = {
   isHandleAvailable,

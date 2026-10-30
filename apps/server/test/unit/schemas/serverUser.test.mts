@@ -128,6 +128,11 @@ describe('chains', () => {
     });
 
     describe('returned chain', () => {
+      it('returns parsed data even if input object is empty', async () => {
+        const parsed = await chains.updatePartial().parseAsync({});
+        expect(parsed).toStrictEqual({});
+      });
+
       it('returns parsed data if handle does not already exist on the database', async () => {
         const parsed = await chains.updatePartial().parseAsync(userData);
         expect(parsed).toStrictEqual(userData);
