@@ -110,7 +110,12 @@ export const del: RequestHandler = async (req, res, next) => {
 };
 
 export const getOne: RequestHandler = (req, res, next) => {
-  return res.send('get user');
+  try {
+    const userResource = req.resource as UserResource;
+    return res.json(createResponseBody.successSingle(userResource));
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const getMany: RequestHandler = (req, res, next) => {
