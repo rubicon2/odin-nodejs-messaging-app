@@ -43,8 +43,52 @@ export const put: RequestHandler = (req, res, next) => {
   return res.send('put user');
 };
 
-export const patch: RequestHandler = (req, res, next) => {
-  return res.send('patch user');
+export const patch: RequestHandler = async (req, res, next) => {
+  try {
+    const userResource = req.resource as UserResource;
+
+    const parseResult = await chains
+      .updatePartial([userResource.id])
+      .safeParseAsync(req.body);
+
+    if (!parseResult.success) {
+      return res
+        .status(400)
+        .send(
+          createResponseBody.failValidation(
+            createValidationErrors(parseResult.error),
+          ),
+        );
+    }
+
+    const parsedData = parseResult.data;
+
+    let updatedHash: string | undefined;
+    if (parsedData.password && parsedData.passwordConfirm) {
+      updatedHash = hash(parsedData.password);
+    }
+
+    const updatedUser: UserResource = await db.user.update({
+      where: {
+        id: userResource.id,
+      },
+      data: {
+        handle: parsedData.handle,
+        displayName: parsedData.displayName,
+        hash: updatedHash,
+      },
+      omit: userResourceOmit,
+    });
+
+    return res.send(
+      createResponseBody.successSingle(
+        updatedUser,
+        'User successfully updated',
+      ),
+    );
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const del: RequestHandler = (req, res, next) => {
