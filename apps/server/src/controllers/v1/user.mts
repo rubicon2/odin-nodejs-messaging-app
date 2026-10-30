@@ -91,8 +91,26 @@ export const patch: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const del: RequestHandler = (req, res, next) => {
-  return res.send('delete user');
+export const del: RequestHandler = async (req, res, next) => {
+  try {
+    const userResource = req.resource as UserResource;
+
+    const deletedUser = await db.user.delete({
+      where: {
+        id: userResource.id,
+      },
+      omit: userResourceOmit,
+    });
+
+    return res.json(
+      createResponseBody.successSingle(
+        deletedUser,
+        'User successfully deleted',
+      ),
+    );
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const getOne: RequestHandler = (req, res, next) => {

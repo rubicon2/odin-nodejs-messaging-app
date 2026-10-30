@@ -27,6 +27,15 @@ const routeTestCases: Record<string, TestCaseData> = {
       });
     },
   },
+  deleteUser: {
+    method: 'delete',
+    url: `/v1/user/${dbData.dbUserData.id}`,
+    setupFn: async () => {
+      await db.user.create({
+        data: dbData.dbUserData,
+      });
+    },
+  },
 };
 
 beforeEach(dbHelpers.clearDb);
@@ -51,7 +60,7 @@ describe('given no access token, returns status code 401 and a message', () => {
 });
 
 describe('given a valid access token', () => {
-  describe.each([routeTestCases.patchUser])(
+  describe.each(Object.values(routeTestCases))(
     '$method $url',
     ({ method, url, setupFn }) => {
       it('allows a user to update themselves', async () => {
