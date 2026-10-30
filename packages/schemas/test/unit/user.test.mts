@@ -289,6 +289,11 @@ describe('chains', () => {
 
   describe('updatePartial', () => {
     describe('success', () => {
+      it('given undefined input, defaults to an empty object', () => {
+        const output = chains.updatePartial.parse(undefined);
+        expect(output).toStrictEqual({});
+      });
+
       it.each([
         {
           testType: 'only a handle',
