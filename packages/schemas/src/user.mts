@@ -77,6 +77,7 @@ const updatePartial = z
     password: password.optional(),
     passwordConfirm: passwordConfirm.optional(),
   })
+  .default({})
   // So if both passwords are undefined, no error as not trying to update.
   .refine((data) => data.password === data.passwordConfirm, {
     error: 'Passwords do not match',
