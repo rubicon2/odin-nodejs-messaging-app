@@ -75,7 +75,7 @@ const updatePartial = z
     handle: handle.optional(),
     displayName: displayName.optional(),
     password: password.optional(),
-    passwordConfirm: password.optional(),
+    passwordConfirm: passwordConfirm.optional(),
   })
   // So if both passwords are undefined, no error as not trying to update.
   .refine((data) => data.password === data.passwordConfirm, {
