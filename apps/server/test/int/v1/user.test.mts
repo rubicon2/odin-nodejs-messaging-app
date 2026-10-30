@@ -227,195 +227,75 @@ const patchTestCases: Record<string, TestCaseData> = {
 
 beforeEach(dbHelpers.clearDb);
 
-describe('POST', () => {
-  describe('when provided the correct data', () => {
-    it('returns status code 200', async () => {
-      const response = await request(server).post(baseUrl).send(userData);
-      expect(response.status).toStrictEqual(200);
-    });
-
-    it('returns a success message and the created user, sans hash', async () => {
-      const response = await request(server).post(baseUrl).send(userData);
-      expect(response.body).toStrictEqual({
-        status: 'success',
-        message: 'User successfully created',
-        data: {
-          item: {
-            handle: userData.handle,
-            displayName: userData.displayName,
-            id: expect.any(String),
-            /**
-             * Dates are returned in response, but in string format.
-             * This means the resource types in /src/db are wrong
-             * for the client. The data will leave the server
-             * as a Date, but reach the client as a string.
-             */
-            createdAt: expect.any(String),
-            updatedAt: expect.any(String),
-          },
-        },
-      });
-    });
-
-    it('creates a user on the database with the relevant details', async () => {
-      await request(server).post(baseUrl).send(userData);
-
-      const dbUser = await db.user.findUnique({
-        where: {
-          handle: userData.handle,
-          displayName: userData.displayName,
-        },
-      });
-
-      expect(dbUser).not.toBeNull();
-      expect(dbUser?.handle).toStrictEqual(userData.handle);
-      expect(dbUser?.displayName).toStrictEqual(userData.displayName);
-    });
-
-    it('does not store the password in plaintext', async () => {
-      await request(server).post(baseUrl).send(userData);
-
-      const dbUser = await db.user.findUnique({
-        where: {
-          handle: userData.handle,
-          displayName: userData.displayName,
-        },
-      });
-
-      expect(dbUser).not.toBeNull();
-      expect(dbUser?.hash).not.toStrictEqual(userData.password);
-    });
-  });
-
-  describe.each(Object.values(bodyTestCases))(
-    'when provided: $testType',
-    ({ setupPostFn, badData, expectedBodyData }) => {
-      it('returns status code 400', async () => {
-        if (setupPostFn) {
-          await setupPostFn();
-        }
-        const response = await request(server).post(baseUrl).send(badData);
-        expect(response.status).toStrictEqual(400);
-      });
-
-      it('returns appropriate errors', async () => {
-        if (setupPostFn) {
-          await setupPostFn();
-        }
-        const response = await request(server).post(baseUrl).send(badData);
-
-        expect(response.body).toStrictEqual({
-          status: 'fail-validation',
-          data: expectedBodyData,
-        });
-      });
-    },
-  );
-});
-
-describe('PATCH', () => {
-  const loggedInUserData = dbUserData;
-  const url = `${baseUrl}/${loggedInUserData.id}`;
-
-  it('given an invalid userId param, returns status code 404 and a message', async () => {
-    const bearerToken =
-      await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-    const response = await request(server)
-      .patch(`${baseUrl}/invalid-id`)
-      .set('Authorization', bearerToken);
-
-    expect(response.statusCode).toStrictEqual(404);
-    expect(response.body).toStrictEqual({
-      status: 'fail',
-      message: 'Not found',
-    });
-  });
-
-  describe('given a valid userId param', () => {
-    describe('given the correct body data', () => {
+describe(baseUrl, () => {
+  describe('POST', () => {
+    describe('when provided the correct data', () => {
       it('returns status code 200', async () => {
-        const bearerToken =
-          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-        // On PATCH, all values are optional, so can leave the body empty.
-        const response = await request(server)
-          .patch(url)
-          .set('Authorization', bearerToken);
-
+        const response = await request(server).post(baseUrl).send(userData);
         expect(response.status).toStrictEqual(200);
       });
 
-      it('returns a success message', async () => {
-        const bearerToken =
-          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-        const response = await request(server)
-          .patch(url)
-          .set('Authorization', bearerToken)
-          .send();
-
-        expect(response.body.message).toStrictEqual(
-          'User successfully updated',
-        );
+      it('returns a success message and the created user, sans hash', async () => {
+        const response = await request(server).post(baseUrl).send(userData);
+        expect(response.body).toStrictEqual({
+          status: 'success',
+          message: 'User successfully created',
+          data: {
+            item: {
+              handle: userData.handle,
+              displayName: userData.displayName,
+              id: expect.any(String),
+              /**
+               * Dates are returned in response, but in string format.
+               * This means the resource types in /src/db are wrong
+               * for the client. The data will leave the server
+               * as a Date, but reach the client as a string.
+               */
+              createdAt: expect.any(String),
+              updatedAt: expect.any(String),
+            },
+          },
+        });
       });
 
-      it('returns the updated user (sans hash) and updates the user on the database', async () => {
-        const bearerToken =
-          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-        const patchData = {
-          handle: 'donald_ronald',
-          displayName: 'Donron',
-        };
-
-        const response = await request(server)
-          .patch(url)
-          .set('Authorization', bearerToken)
-          .send(patchData);
-
-        const responseUser = response.body.data.item;
-
-        expect(responseUser).toBeDefined();
-        expect(response.body.data.item).toStrictEqual({
-          id: loggedInUserData.id,
-          createdAt: loggedInUserData.createdAt.toISOString(),
-          updatedAt: expect.any(String),
-          handle: patchData.handle,
-          displayName: patchData.displayName,
-        });
+      it('creates a user on the database with the relevant details', async () => {
+        await request(server).post(baseUrl).send(userData);
 
         const dbUser = await db.user.findUnique({
           where: {
-            id: loggedInUserData.id,
+            handle: userData.handle,
+            displayName: userData.displayName,
           },
         });
 
-        expect(dbUser).toStrictEqual({
-          ...responseUser,
-          createdAt: loggedInUserData.createdAt,
-          updatedAt: expect.any(Date),
-          hash: expect.any(String),
+        expect(dbUser).not.toBeNull();
+        expect(dbUser?.handle).toStrictEqual(userData.handle);
+        expect(dbUser?.displayName).toStrictEqual(userData.displayName);
+      });
+
+      it('does not store the password in plaintext', async () => {
+        await request(server).post(baseUrl).send(userData);
+
+        const dbUser = await db.user.findUnique({
+          where: {
+            handle: userData.handle,
+            displayName: userData.displayName,
+          },
         });
+
+        expect(dbUser).not.toBeNull();
+        expect(dbUser?.hash).not.toStrictEqual(userData.password);
       });
     });
 
-    describe.each(Object.values(patchTestCases))(
+    describe.each(Object.values(bodyTestCases))(
       'when provided: $testType',
       ({ setupPostFn, badData, expectedBodyData }) => {
         it('returns status code 400', async () => {
           if (setupPostFn) {
             await setupPostFn();
           }
-
-          const bearerToken =
-            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-          const response = await request(server)
-            .patch(url)
-            .set('Authorization', bearerToken)
-            .send(badData);
-
+          const response = await request(server).post(baseUrl).send(badData);
           expect(response.status).toStrictEqual(400);
         });
 
@@ -423,14 +303,7 @@ describe('PATCH', () => {
           if (setupPostFn) {
             await setupPostFn();
           }
-
-          const bearerToken =
-            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-          const response = await request(server)
-            .patch(url)
-            .set('Authorization', bearerToken)
-            .send(badData);
+          const response = await request(server).post(baseUrl).send(badData);
 
           expect(response.body).toStrictEqual({
             status: 'fail-validation',
@@ -442,74 +315,241 @@ describe('PATCH', () => {
   });
 });
 
-describe('DELETE', () => {
-  const loggedInUserData = dbUserData;
-  const url = `${baseUrl}/${loggedInUserData.id}`;
+describe(`${baseUrl}/:userId`, () => {
+  describe('PATCH', () => {
+    const loggedInUserData = dbUserData;
+    const url = `${baseUrl}/${loggedInUserData.id}`;
 
-  it('given an invalid userId param, returns status code 404 and a message', async () => {
-    const bearerToken =
-      await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+    it('given an invalid userId param, returns status code 404 and a message', async () => {
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
 
-    const response = await request(server)
-      .delete(`${baseUrl}/invalid-id`)
-      .set('Authorization', bearerToken);
+      const response = await request(server)
+        .patch(`${baseUrl}/invalid-id`)
+        .set('Authorization', bearerToken);
 
-    expect(response.statusCode).toStrictEqual(404);
-    expect(response.body).toStrictEqual({
-      status: 'fail',
-      message: 'Not found',
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid userId param', () => {
+      describe('given the correct body data', () => {
+        it('returns status code 200', async () => {
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          // On PATCH, all values are optional, so can leave the body empty.
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken);
+
+          expect(response.status).toStrictEqual(200);
+        });
+
+        it('returns a success message', async () => {
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken)
+            .send();
+
+          expect(response.body.message).toStrictEqual(
+            'User successfully updated',
+          );
+        });
+
+        it('returns the updated user (sans hash) and updates the user on the database', async () => {
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          const patchData = {
+            handle: 'donald_ronald',
+            displayName: 'Donron',
+          };
+
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken)
+            .send(patchData);
+
+          const responseUser = response.body.data.item;
+
+          expect(responseUser).toBeDefined();
+          expect(response.body.data.item).toStrictEqual({
+            id: loggedInUserData.id,
+            createdAt: loggedInUserData.createdAt.toISOString(),
+            updatedAt: expect.any(String),
+            handle: patchData.handle,
+            displayName: patchData.displayName,
+          });
+
+          const dbUser = await db.user.findUnique({
+            where: {
+              id: loggedInUserData.id,
+            },
+          });
+
+          expect(dbUser).toStrictEqual({
+            ...responseUser,
+            createdAt: loggedInUserData.createdAt,
+            updatedAt: expect.any(Date),
+            hash: expect.any(String),
+          });
+        });
+      });
+
+      describe.each(Object.values(patchTestCases))(
+        'when provided: $testType',
+        ({ setupPostFn, badData, expectedBodyData }) => {
+          it('returns status code 400', async () => {
+            if (setupPostFn) {
+              await setupPostFn();
+            }
+
+            const bearerToken =
+              await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+            const response = await request(server)
+              .patch(url)
+              .set('Authorization', bearerToken)
+              .send(badData);
+
+            expect(response.status).toStrictEqual(400);
+          });
+
+          it('returns appropriate errors', async () => {
+            if (setupPostFn) {
+              await setupPostFn();
+            }
+
+            const bearerToken =
+              await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+            const response = await request(server)
+              .patch(url)
+              .set('Authorization', bearerToken)
+              .send(badData);
+
+            expect(response.body).toStrictEqual({
+              status: 'fail-validation',
+              data: expectedBodyData,
+            });
+          });
+        },
+      );
     });
   });
 
-  describe('given a valid userId param', () => {
-    it('returns status code 200', async () => {
+  describe('DELETE', () => {
+    const loggedInUserData = dbUserData;
+    const url = `${baseUrl}/${loggedInUserData.id}`;
+
+    it('given an invalid userId param, returns status code 404 and a message', async () => {
       const bearerToken =
         await createLoggedInUserAndGetBearerHeader(loggedInUserData);
 
       const response = await request(server)
-        .delete(url)
+        .delete(`${baseUrl}/invalid-id`)
         .set('Authorization', bearerToken);
+
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid userId param', () => {
+      it('returns status code 200', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .delete(url)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it('returns a success message', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .delete(url)
+          .set('Authorization', bearerToken);
+
+        expect(response.body.message).toStrictEqual(
+          'User successfully deleted',
+        );
+      });
+
+      it('returns the deleted user (sans hash) and deletes the user from the database', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .delete(url)
+          .set('Authorization', bearerToken);
+
+        const responseUser = response.body.data.item;
+
+        expect(responseUser).toBeDefined();
+        expect(response.body.data.item).toStrictEqual({
+          id: loggedInUserData.id,
+          handle: loggedInUserData.handle,
+          displayName: loggedInUserData.displayName,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        });
+
+        const dbUser = await db.user.findUnique({
+          where: {
+            id: loggedInUserData.id,
+          },
+        });
+
+        expect(dbUser).toBeNull();
+      });
+    });
+  });
+
+  describe('GET', () => {
+    it('given a valid userId param, returns status code 200 and the user', async () => {
+      const user = await db.user.create({
+        data: dbUserData,
+      });
+
+      const response = await request(server).get(`${baseUrl}/${user.id}`);
 
       expect(response.status).toStrictEqual(200);
-    });
-
-    it('returns a success message', async () => {
-      const bearerToken =
-        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-      const response = await request(server)
-        .delete(url)
-        .set('Authorization', bearerToken);
-
-      expect(response.body.message).toStrictEqual('User successfully deleted');
-    });
-
-    it('returns the deleted user (sans hash) and deletes the user from the database', async () => {
-      const bearerToken =
-        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
-
-      const response = await request(server)
-        .delete(url)
-        .set('Authorization', bearerToken);
-
-      const responseUser = response.body.data.item;
-
-      expect(responseUser).toBeDefined();
-      expect(response.body.data.item).toStrictEqual({
-        id: loggedInUserData.id,
-        handle: loggedInUserData.handle,
-        displayName: loggedInUserData.displayName,
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
-      });
-
-      const dbUser = await db.user.findUnique({
-        where: {
-          id: loggedInUserData.id,
+      expect(response.body).toStrictEqual({
+        status: 'success',
+        data: {
+          item: {
+            id: user.id,
+            handle: user.handle,
+            displayName: user.displayName,
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+          },
         },
       });
+    });
 
-      expect(dbUser).toBeNull();
+    it('given an invalid userId param, returns status code 404 and a message', async () => {
+      const response = await request(server).get(`${baseUrl}/invalid-id`);
+
+      expect(response.status).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
     });
   });
 });
