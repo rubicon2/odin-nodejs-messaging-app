@@ -39,10 +39,6 @@ export const post: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const put: RequestHandler = (req, res, next) => {
-  return res.send('put user');
-};
-
 export const patch: RequestHandler = async (req, res, next) => {
   try {
     const userResource = req.resource as UserResource;

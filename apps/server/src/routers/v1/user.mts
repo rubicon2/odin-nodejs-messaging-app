@@ -22,7 +22,6 @@ export const user = Router()
     loaders.loadResource('userId', loaders.loadUserResource),
     controller.getOne,
   )
-  .put('/:userId', controller.put)
   .patch(
     '/:userId',
     loadProtectedRouteMiddleware,
