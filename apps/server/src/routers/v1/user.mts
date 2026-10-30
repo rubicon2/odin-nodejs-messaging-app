@@ -25,4 +25,13 @@ export const user = Router()
     canDo(canUpdateUser),
     controller.patch,
   )
-  .delete('/:userId', controller.del);
+  .delete(
+    '/:userId',
+    tokens.getAccessToken,
+    tokens.verifyToken,
+    isAuthenticated,
+    loaders.loadUser,
+    loaders.loadResource('userId', loaders.loadUserResource),
+    canDo(canUpdateUser),
+    controller.del,
+  );

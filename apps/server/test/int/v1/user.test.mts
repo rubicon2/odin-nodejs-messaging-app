@@ -441,3 +441,75 @@ describe('PATCH', () => {
     );
   });
 });
+
+describe('DELETE', () => {
+  const loggedInUserData = dbUserData;
+  const url = `${baseUrl}/${loggedInUserData.id}`;
+
+  it('given an invalid userId param, returns status code 404 and a message', async () => {
+    const bearerToken =
+      await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+    const response = await request(server)
+      .delete(`${baseUrl}/invalid-id`)
+      .set('Authorization', bearerToken);
+
+    expect(response.statusCode).toStrictEqual(404);
+    expect(response.body).toStrictEqual({
+      status: 'fail',
+      message: 'Not found',
+    });
+  });
+
+  describe('given a valid userId param', () => {
+    it('returns status code 200', async () => {
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+      const response = await request(server)
+        .delete(url)
+        .set('Authorization', bearerToken);
+
+      expect(response.status).toStrictEqual(200);
+    });
+
+    it('returns a success message', async () => {
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+      const response = await request(server)
+        .delete(url)
+        .set('Authorization', bearerToken);
+
+      expect(response.body.message).toStrictEqual('User successfully deleted');
+    });
+
+    it('returns the deleted user (sans hash) and deletes the user from the database', async () => {
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+      const response = await request(server)
+        .delete(url)
+        .set('Authorization', bearerToken);
+
+      const responseUser = response.body.data.item;
+
+      expect(responseUser).toBeDefined();
+      expect(response.body.data.item).toStrictEqual({
+        id: loggedInUserData.id,
+        handle: loggedInUserData.handle,
+        displayName: loggedInUserData.displayName,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
+
+      const dbUser = await db.user.findUnique({
+        where: {
+          id: loggedInUserData.id,
+        },
+      });
+
+      expect(dbUser).toBeNull();
+    });
+  });
+});
