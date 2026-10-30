@@ -6,6 +6,14 @@ import * as loaders from '../../middleware/loaders.mjs';
 import { canDo } from '../../middleware/permissions.mjs';
 import * as tokens from '../../middleware/tokens.mjs';
 
+const loadProtectedRouteMiddleware = [
+  tokens.getAccessToken,
+  tokens.verifyToken,
+  isAuthenticated,
+  loaders.loadUser,
+  loaders.loadResource('userId', loaders.loadUserResource),
+];
+
 export const user = Router()
   .post('/', controller.post)
   .get('/', controller.getMany)
@@ -17,21 +25,13 @@ export const user = Router()
   .put('/:userId', controller.put)
   .patch(
     '/:userId',
-    tokens.getAccessToken,
-    tokens.verifyToken,
-    isAuthenticated,
-    loaders.loadUser,
-    loaders.loadResource('userId', loaders.loadUserResource),
+    loadProtectedRouteMiddleware,
     canDo(canUpdateUser),
     controller.patch,
   )
   .delete(
     '/:userId',
-    tokens.getAccessToken,
-    tokens.verifyToken,
-    isAuthenticated,
-    loaders.loadUser,
-    loaders.loadResource('userId', loaders.loadUserResource),
+    loadProtectedRouteMiddleware,
     canDo(canUpdateUser),
     controller.del,
   );
