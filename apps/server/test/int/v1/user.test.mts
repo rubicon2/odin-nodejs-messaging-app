@@ -2,6 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mts';
 import { server } from '../../../src/server.mjs';
+import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mts';
 import * as dbHelpers from '../../helpers/db.mjs';
 import { dbUserData } from '../../helpers/dbData.mts';
 import { userData } from '../../helpers/postData.mjs';
@@ -183,6 +184,47 @@ const bodyTestCases: Record<string, TestCaseData> = {
   },
 };
 
+const patchTestCases: Record<string, TestCaseData> = {
+  // We want to omit all "undefined" test cases, since everything is optional on PATCH.
+  displayNameTooShort: bodyTestCases.displayNameTooShort,
+  displayNameTooLong: bodyTestCases.displayNameTooLong,
+  handleTooShort: bodyTestCases.handleTooShort,
+  handleTooLong: bodyTestCases.handleTooLong,
+  passwordTooShort: bodyTestCases.passwordTooShort,
+  passwordTooLong: bodyTestCases.passwordTooLong,
+  passwordAndPasswordConfirmNonMatching:
+    bodyTestCases.passwordAndPasswordConfirmNonMatching,
+  // Custom test cases for patch tests, where setup needs to be different, etc.
+  handleTaken: {
+    testType: 'handle already in use',
+    setupPostFn: async () => {
+      /**
+       * Since user has to log in to update with patch, dbUserData is used for that.
+       * So create a different user with a new handle that the logged in user can
+       * conflict with when they try to update their handle.
+       */
+      await db.user.create({
+        data: {
+          ...dbUserData,
+          id: 'other-user',
+          handle: 'other_handle',
+        },
+      });
+    },
+    badData: {
+      handle: 'other_handle',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['That handle is already in use'],
+        },
+      },
+    },
+  },
+};
+
 beforeEach(dbHelpers.clearDb);
 
 describe('POST', () => {
@@ -269,4 +311,133 @@ describe('POST', () => {
       });
     },
   );
+});
+
+describe('PATCH', () => {
+  const loggedInUserData = dbUserData;
+  const url = `${baseUrl}/${loggedInUserData.id}`;
+
+  it('given an invalid userId param, returns status code 404 and a message', async () => {
+    const bearerToken =
+      await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+    const response = await request(server)
+      .patch(`${baseUrl}/invalid-id`)
+      .set('Authorization', bearerToken);
+
+    expect(response.statusCode).toStrictEqual(404);
+    expect(response.body).toStrictEqual({
+      status: 'fail',
+      message: 'Not found',
+    });
+  });
+
+  describe('given a valid userId param', () => {
+    describe('given the correct body data', () => {
+      it('returns status code 200', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        // On PATCH, all values are optional, so can leave the body empty.
+        const response = await request(server)
+          .patch(url)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it('returns a success message', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .patch(url)
+          .set('Authorization', bearerToken)
+          .send();
+
+        expect(response.body.message).toStrictEqual(
+          'User successfully updated',
+        );
+      });
+
+      it('returns the updated user (sans hash) and updates the user on the database', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const patchData = {
+          handle: 'donald_ronald',
+          displayName: 'Donron',
+        };
+
+        const response = await request(server)
+          .patch(url)
+          .set('Authorization', bearerToken)
+          .send(patchData);
+
+        const responseUser = response.body.data.item;
+
+        expect(responseUser).toBeDefined();
+        expect(response.body.data.item).toStrictEqual({
+          id: loggedInUserData.id,
+          createdAt: loggedInUserData.createdAt.toISOString(),
+          updatedAt: expect.any(String),
+          handle: patchData.handle,
+          displayName: patchData.displayName,
+        });
+
+        const dbUser = await db.user.findUnique({
+          where: {
+            id: loggedInUserData.id,
+          },
+        });
+
+        expect(dbUser).toStrictEqual({
+          ...responseUser,
+          createdAt: loggedInUserData.createdAt,
+          updatedAt: expect.any(Date),
+          hash: expect.any(String),
+        });
+      });
+    });
+
+    describe.each(Object.values(patchTestCases))(
+      'when provided: $testType',
+      ({ setupPostFn, badData, expectedBodyData }) => {
+        it('returns status code 400', async () => {
+          if (setupPostFn) {
+            await setupPostFn();
+          }
+
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken)
+            .send(badData);
+
+          expect(response.status).toStrictEqual(400);
+        });
+
+        it('returns appropriate errors', async () => {
+          if (setupPostFn) {
+            await setupPostFn();
+          }
+
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken)
+            .send(badData);
+
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: expectedBodyData,
+          });
+        });
+      },
+    );
+  });
 });
