@@ -16,7 +16,10 @@ const isHandleAvailable =
         id: {
           notIn: ignoreIds,
         },
-        handle: data.handle,
+        handle: {
+          equals: data.handle,
+          mode: 'insensitive',
+        },
       },
     });
 
