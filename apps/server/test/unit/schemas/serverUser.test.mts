@@ -50,6 +50,22 @@ describe('refinements', () => {
         const result = await refinements.isHandleAvailable()(userData);
         expect(result).toStrictEqual(false);
       });
+
+      it('is case-insensitive', async () => {
+        await db.user.create({
+          data: {
+            handle: userData.handle.toLowerCase(),
+            displayName: 'whatever',
+            hash: '12345',
+          },
+        });
+
+        const result = await refinements.isHandleAvailable()({
+          ...userData,
+          handle: userData.handle.toUpperCase(),
+        });
+        expect(result).toStrictEqual(false);
+      });
     });
   });
 });
@@ -69,14 +85,17 @@ describe('chains', () => {
       it('returns error if handle already exists on the database', async () => {
         await db.user.create({
           data: {
-            handle: userData.handle,
+            handle: userData.handle.toLowerCase(),
             displayName: 'whatever',
             hash: '12345',
           },
         });
 
         await expect(() =>
-          chains.signup().parseAsync(userData),
+          chains.signup().parseAsync({
+            ...userData,
+            handle: userData.handle.toUpperCase(),
+          }),
         ).rejects.toThrow('That handle is already in use');
       });
     });
@@ -109,14 +128,17 @@ describe('chains', () => {
       it('returns error if handle already exists on the database', async () => {
         await db.user.create({
           data: {
-            handle: userData.handle,
+            handle: userData.handle.toLowerCase(),
             displayName: 'whatever',
             hash: '12345',
           },
         });
 
         await expect(() =>
-          chains.updateAll().parseAsync(userData),
+          chains.updateAll().parseAsync({
+            ...userData,
+            handle: userData.handle.toUpperCase(),
+          }),
         ).rejects.toThrow('That handle is already in use');
       });
     });
@@ -156,14 +178,17 @@ describe('chains', () => {
       it('returns error if handle already exists on the database', async () => {
         await db.user.create({
           data: {
-            handle: userData.handle,
+            handle: userData.handle.toLowerCase(),
             displayName: 'whatever',
             hash: '12345',
           },
         });
 
         await expect(() =>
-          chains.updatePartial().parseAsync(userData),
+          chains.updatePartial().parseAsync({
+            ...userData,
+            handle: userData.handle.toUpperCase(),
+          }),
         ).rejects.toThrow('That handle is already in use');
       });
     });
