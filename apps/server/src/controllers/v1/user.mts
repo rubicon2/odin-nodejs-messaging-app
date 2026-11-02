@@ -1,4 +1,9 @@
+import type {
+  UserOrderByWithRelationInput,
+  UserWhereInput,
+} from '@repo/db/prisma/models';
 import * as createResponseBody from '@repo/response-json';
+import { chains as searchChains } from '@repo/schemas/search';
 import { createValidationErrors } from '@repo/validation/zod';
 import type { RequestHandler } from 'express';
 import { client as db } from '../../db/client.mjs';
@@ -118,6 +123,73 @@ export const getOne: RequestHandler = (req, res, next) => {
   }
 };
 
-export const getMany: RequestHandler = (req, res, next) => {
-  return res.send('get many users');
+export const getMany: RequestHandler = async (req, res, next) => {
+  try {
+    const parseResult = searchChains.searchUserParams.safeParse(req.query);
+    if (!parseResult.success) {
+      return res
+        .status(400)
+        .send(
+          createResponseBody.failValidation(
+            createValidationErrors(parseResult.error),
+          ),
+        );
+    }
+
+    const parsedData = parseResult.data;
+
+    // Create where object so can re-use in findMany and total queries.
+    let where: UserWhereInput | undefined;
+    if (parsedData.q) {
+      where = {
+        OR: [
+          {
+            handle: {
+              contains: parsedData.q,
+              mode: 'insensitive',
+            },
+          },
+          {
+            displayName: {
+              contains: parsedData.q,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      };
+    }
+
+    const orderBy: UserOrderByWithRelationInput[] = parsedData.orderBy.map(
+      (columnName, index) => ({
+        // If there is not a sortOrder at the same position, default to 'asc'.
+        [columnName]: parsedData.sortOrder?.[index] ?? 'asc',
+      }),
+    );
+
+    const cursor =
+      parsedData.cursor === undefined ? undefined : { id: parsedData.cursor };
+
+    const users = await db.user.findMany({
+      take: parsedData.take,
+      skip: parsedData.skip,
+      cursor,
+      where,
+      orderBy,
+      omit: userResourceOmit,
+    });
+
+    const total = await db.user.count({
+      where,
+      orderBy,
+    });
+
+    const meta = createResponseBody.pagedResponseMeta(
+      total,
+      parsedData.take,
+      parsedData.skip,
+    );
+    return res.json(createResponseBody.successPaged(meta, users));
+  } catch (error) {
+    return next(error);
+  }
 };

@@ -1,3 +1,5 @@
+import { convertArrayDatesToStrings } from '@repo/all-dates-to-iso-strings';
+import { pagedResponseMeta } from '@repo/response-json';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mts';
@@ -5,6 +7,7 @@ import { server } from '../../../src/server.mjs';
 import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mts';
 import * as dbHelpers from '../../helpers/db.mjs';
 import { dbUserData } from '../../helpers/dbData.mts';
+import * as fakeData from '../../helpers/fakeData.mjs';
 import { userData } from '../../helpers/postData.mjs';
 
 const baseUrl = '/v1/user';
@@ -312,6 +315,96 @@ describe(baseUrl, () => {
         });
       },
     );
+  });
+
+  describe('GET', () => {
+    it('returns status code 200 and by default 10 users in handle order', async () => {
+      // Create a bunch of fake users. This takes ages.
+      const users = await fakeData.createFakeUsers(50);
+      const firstTenResults = users
+        // There is possibly a divergence from how postgres sorts, leading to random test failures. Can't reproduce.
+        .sort((a, b) => a.handle.localeCompare(b.handle))
+        .slice(0, 10);
+
+      const response = await request(server).get(baseUrl);
+
+      expect(response.status).toStrictEqual(200);
+      expect(response.body).toStrictEqual({
+        status: 'success',
+        data: {
+          meta: pagedResponseMeta(50, 10, 0),
+          results: convertArrayDatesToStrings(firstTenResults),
+        },
+      });
+    });
+
+    describe('search parameters', () => {
+      describe('q', () => {
+        it('returns users that have a handle that partially matches (case insensitive)', async () => {
+          // Create a haystack.
+          const fakeUserCount = 10;
+          await fakeData.createFakeUsers(fakeUserCount);
+
+          // Now plant the needle.
+          const userToFindByHandle = await db.user.create({
+            data: {
+              handle: 'zyx',
+              displayName: 'Mega User',
+              hash: '12345',
+            },
+            omit: {
+              hash: true,
+            },
+          });
+
+          const response = await request(server).get(baseUrl).query({
+            q: 'ZYX',
+          });
+
+          expect(response.status).toStrictEqual(200);
+          expect(response.body).toStrictEqual({
+            status: 'success',
+            data: {
+              // Total is 1 since there should be only one user that matches q.
+              meta: pagedResponseMeta(1, 10, 0),
+              results: convertArrayDatesToStrings([userToFindByHandle]),
+            },
+          });
+        });
+
+        it('returns users that have a displayName that partially matches (case insensitive)', async () => {
+          // Create a haystack.
+          const fakeUserCount = 10;
+          await fakeData.createFakeUsers(fakeUserCount);
+
+          // Now plant the needle.
+          const userToFindByHandle = await db.user.create({
+            data: {
+              handle: 'user-to-find',
+              displayName: 'zyx',
+              hash: '12345',
+            },
+            omit: {
+              hash: true,
+            },
+          });
+
+          const response = await request(server).get(baseUrl).query({
+            q: 'ZYX',
+          });
+
+          expect(response.status).toStrictEqual(200);
+          expect(response.body).toStrictEqual({
+            status: 'success',
+            data: {
+              // Total is 1 since there should be only one user that matches q.
+              meta: pagedResponseMeta(1, 10, 0),
+              results: convertArrayDatesToStrings([userToFindByHandle]),
+            },
+          });
+        });
+      });
+    });
   });
 });
 
