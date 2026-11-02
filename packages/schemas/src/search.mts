@@ -37,12 +37,52 @@ const searchParams = z.object({
 
 type SearchParams = z.infer<typeof searchParams>;
 
+type SearchUserSortColumn =
+  | 'id'
+  | 'handle'
+  | 'displayName'
+  | 'createdAt'
+  | 'updatedAt';
+
+/**
+ * Just so we can use to check if user-provided column
+ * name is correct and easily create a list for the error.
+ */
+const searchUserSortColumns: SearchUserSortColumn[] = [
+  'id',
+  'handle',
+  'displayName',
+  'createdAt',
+  'updatedAt',
+];
+
+const searchUserSortColumn = z.coerce
+  .string()
+  .refine((v) => searchUserSortColumns.includes(v as SearchUserSortColumn), {
+    error: `Can only order by: ${searchUserSortColumns.join(', ')}`,
+    path: ['orderBy'],
+  })
+  .transform((v) => v as SearchUserSortColumn);
+
+/**
+ * Same as regular searchParams, but different
+ * default orderBy and sortOrder parameters.
+ */
+const searchUserParams = searchParams.extend({
+  orderBy: z.array(searchUserSortColumn).default(['handle']),
+  sortOrder: z.array(sortOrder).default(['asc']),
+});
+
+type SearchUserParams = z.infer<typeof searchUserParams>;
+
 export const fields = {
   sortOrder,
+  searchUserSortColumn,
 };
 
 export const chains = {
   searchParams,
+  searchUserParams,
 };
 
-export type { SearchParams, SortOrder };
+export type { SearchParams, SearchUserParams, SortOrder };
