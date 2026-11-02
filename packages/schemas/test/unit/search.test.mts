@@ -21,6 +21,27 @@ describe('fields', () => {
       });
     });
   });
+
+  describe('searchUserSortColumn', () => {
+    describe('success', () => {
+      it.each(['id', 'handle', 'displayName', 'createdAt', 'updatedAt'])(
+        'accepts $0',
+        (columnName) => {
+          expect(fields.searchUserSortColumn.parse(columnName)).toStrictEqual(
+            columnName,
+          );
+        },
+      );
+    });
+
+    describe('fail', () => {
+      it('rejects all other text', () => {
+        expect(() => fields.searchUserSortColumn.parse('whatever')).toThrow(
+          'Can only order by: id, handle, displayName, createdAt, updatedAt',
+        );
+      });
+    });
+  });
 });
 
 describe('chains', () => {
@@ -115,6 +136,78 @@ describe('chains', () => {
         ({ badInput, expectedErrorMsg }) => {
           expect(() =>
             chains.searchParams.parse({ ...goodInput, ...badInput }),
+          ).toThrow(expectedErrorMsg);
+        },
+      );
+    });
+  });
+
+  describe('searchUserParams', () => {
+    const goodInput = {
+      take: '10',
+      skip: '50',
+      cursor: 'some-id-cursor',
+      orderBy: ['id', 'handle', 'displayName', 'createdAt', 'updatedAt'],
+      sortOrder: ['asc'],
+    };
+
+    describe('success', () => {
+      it('returns a typed object with the expected fields and types', () => {
+        // If something is wrong, zod will throw an error and the test will fail.
+        const output = chains.searchUserParams.parse(goodInput);
+        expect(output).toStrictEqual({
+          ...goodInput,
+          // These get coerced into numbers.
+          take: 10,
+          skip: 50,
+        });
+      });
+
+      describe('default values', () =>{
+        const output = chains.searchUserParams.parse({})
+
+        it('has a take of 10', () => {
+          expect(output.take).toStrictEqual(10);
+        })
+
+        it('has a skip of 0', () => {
+          expect(output.skip).toStrictEqual(0);
+        })
+
+        it('orders by ascending user handle', () => {
+          expect(output.orderBy).toStrictEqual(['handle']);
+          expect(output.sortOrder).toStrictEqual(['asc']);
+        })
+      })
+    });
+
+    describe('fail', () => {
+      it.each([
+        {
+          testType: 'non-number take',
+          badInput: { take: 'a string' },
+          expectedErrorMsg: 'Should be a number',
+        },
+        {
+          testType: 'non-integer take',
+          badInput: { take: '3.14' },
+          expectedErrorMsg: 'Should be a whole number',
+        },
+        {
+          testType: 'non-number skip',
+          badInput: { skip: 'a string' },
+          expectedErrorMsg: 'Should be a number',
+        },
+        {
+          testType: 'non-integer skip',
+          badInput: { skip: '3.14' },
+          expectedErrorMsg: 'Should be a whole number',
+        },
+      ])(
+        'returns an appropriate error when $testType',
+        ({ badInput, expectedErrorMsg }) => {
+          expect(() =>
+            chains.searchUserParams.parse({ ...goodInput, ...badInput }),
           ).toThrow(expectedErrorMsg);
         },
       );
