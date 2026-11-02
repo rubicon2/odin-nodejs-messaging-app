@@ -62,7 +62,6 @@ describe('chains', () => {
       q: 'my query text',
     };
 
-
     describe('success', () => {
       it('returns a typed object with the expected fields and types', () => {
         // If something is wrong, zod will throw an error and the test will fail.
@@ -75,22 +74,22 @@ describe('chains', () => {
         });
       });
 
-      describe('default values', () =>{
-        const output = chains.searchParams.parse({})
+      describe('default values', () => {
+        const output = chains.searchParams.parse({});
 
         it('has a take of 10', () => {
           expect(output.take).toStrictEqual(10);
-        })
+        });
 
         it('has a skip of 0', () => {
           expect(output.skip).toStrictEqual(0);
-        })
+        });
 
         it('orders by ascending id', () => {
           expect(output.orderBy).toStrictEqual(['id']);
           expect(output.sortOrder).toStrictEqual(['asc']);
-        })
-      })
+        });
+      });
 
       it('coerces a non-string q parameter into a string', () => {
         const output = chains.searchParams.parse({ q: 97 });
@@ -163,22 +162,22 @@ describe('chains', () => {
         });
       });
 
-      describe('default values', () =>{
-        const output = chains.searchUserParams.parse({})
+      describe('default values', () => {
+        const output = chains.searchUserParams.parse({});
 
         it('has a take of 10', () => {
           expect(output.take).toStrictEqual(10);
-        })
+        });
 
         it('has a skip of 0', () => {
           expect(output.skip).toStrictEqual(0);
-        })
+        });
 
         it('orders by ascending user handle', () => {
           expect(output.orderBy).toStrictEqual(['handle']);
           expect(output.sortOrder).toStrictEqual(['asc']);
-        })
-      })
+        });
+      });
     });
 
     describe('fail', () => {
