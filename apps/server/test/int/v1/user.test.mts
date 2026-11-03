@@ -1000,7 +1000,7 @@ describe(`${baseUrl}/:userId`, () => {
   });
 
   describe('GET', () => {
-    it('given a valid userId param, returns status code 200 and the user', async () => {
+    it('given a valid userId param, returns status code 200 and the user (sans hash)', async () => {
       const user = await db.user.create({
         data: dbUserData,
       });
