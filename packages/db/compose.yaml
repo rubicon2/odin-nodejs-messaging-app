@@ -1,0 +1,12 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: odin-messenger-test-db
+    restart: always
+    environment:
+      - POSTGRES_DB=odin-messenger
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      # Expose for integration tests so we can check against the db directly.
+      - "5433:5432"

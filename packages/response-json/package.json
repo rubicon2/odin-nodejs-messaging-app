@@ -1,0 +1,27 @@
+{
+  "name": "@repo/response-json",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/response.mts",
+      "default": "./dist/response.mjs"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && pnpm tsc",
+    "build:watch": "pnpm clean && pnpm tsc --watch",
+    "clean": "rm -rf dist/*",
+    "lint": "pnpm biome check",
+    "lint:fix": "pnpm biome check --write"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@repo/validation": "workspace:*"
+  }
+}

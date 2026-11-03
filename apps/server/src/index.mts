@@ -1,12 +1,4 @@
-import express from 'express';
-import 'dotenv/config';
+import { env } from './schemas/env.mjs';
+import { server } from './server.mjs';
 
-const app = express();
-
-app.use('/', (_req, res) => {
-  return res.send('Hello, world');
-});
-
-app.listen(process.env.PORT, () =>
-  console.log(`Listening on port ${process.env.PORT}`),
-);
+server.listen(env.PORT, () => console.log(`Listening on port ${env.PORT}`));

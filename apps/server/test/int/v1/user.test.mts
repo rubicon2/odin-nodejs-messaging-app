@@ -1,0 +1,1035 @@
+import { convertArrayDatesToStrings } from '@repo/all-dates-to-iso-strings';
+import type { Prisma } from '@repo/db/prisma/client';
+import { pagedResponseMeta } from '@repo/response-json';
+import type { Response } from 'supertest';
+import request from 'supertest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { client as db } from '../../../src/db/client.mts';
+import type { UserResource } from '../../../src/db/userResource.mts';
+import { server } from '../../../src/server.mjs';
+import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mts';
+import * as dbHelpers from '../../helpers/db.mjs';
+import { dbUserData } from '../../helpers/dbData.mts';
+import * as fakeData from '../../helpers/fakeData.mjs';
+import { userData } from '../../helpers/postData.mjs';
+
+const baseUrl = '/v1/user';
+
+interface TestCaseData {
+  testType: string;
+  badData: Record<string, unknown>;
+  expectedBodyData: {
+    errors: string[];
+    properties: Record<string, { errors: string[] }>;
+  };
+  setupPostFn?: () => void;
+}
+
+const bodyTestCases: Record<string, TestCaseData> = {
+  handleUndefined: {
+    testType: 'no handle',
+    badData: { ...userData, handle: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  handleTooShort: {
+    testType: 'empty handle',
+    badData: { ...userData, handle: '' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  handleTooLong: {
+    testType: '51+ character handle',
+    badData: {
+      ...userData,
+      handle: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  handleTaken: {
+    testType: 'handle already in use',
+    setupPostFn: async () => {
+      await db.user.create({
+        data: dbUserData,
+      });
+    },
+    badData: userData,
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['That handle is already in use'],
+        },
+      },
+    },
+  },
+  displayNameUndefined: {
+    testType: 'no displayName',
+    badData: { ...userData, displayName: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        displayName: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  displayNameTooShort: {
+    testType: 'empty displayName',
+    badData: { ...userData, displayName: '' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        displayName: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  displayNameTooLong: {
+    testType: '51+ character displayName',
+    badData: {
+      ...userData,
+      displayName: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        displayName: {
+          errors: ['Should be between 1 and 50 characters long'],
+        },
+      },
+    },
+  },
+  passwordUndefined: {
+    testType: 'no password',
+    badData: { ...userData, password: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        password: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  passwordTooShort: {
+    testType: 'empty password',
+    // So passwords match, include passwordConfirm.
+    badData: { ...userData, password: 'aA@1', passwordConfirm: 'aA@1' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        password: {
+          errors: ['Should be between 8 and 100 characters long'],
+        },
+      },
+    },
+  },
+  passwordTooLong: {
+    testType: '101+ character password',
+    badData: {
+      ...userData,
+      password:
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
+      passwordConfirm:
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0@',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        password: {
+          errors: ['Should be between 8 and 100 characters long'],
+        },
+      },
+    },
+  },
+  passwordConfirmUndefined: {
+    testType: 'no passwordConfirm',
+    badData: { ...userData, passwordConfirm: undefined },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        passwordConfirm: {
+          errors: ['Required field'],
+        },
+      },
+    },
+  },
+  passwordAndPasswordConfirmNonMatching: {
+    testType: 'non-matching password and passwordConfirm',
+    badData: { ...userData, passwordConfirm: 'some other rubbish' },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        passwordConfirm: {
+          errors: ['Passwords do not match'],
+        },
+      },
+    },
+  },
+};
+
+const patchTestCases: Record<string, TestCaseData> = {
+  // We want to omit all "undefined" test cases, since everything is optional on PATCH.
+  displayNameTooShort: bodyTestCases.displayNameTooShort,
+  displayNameTooLong: bodyTestCases.displayNameTooLong,
+  handleTooShort: bodyTestCases.handleTooShort,
+  handleTooLong: bodyTestCases.handleTooLong,
+  passwordTooShort: bodyTestCases.passwordTooShort,
+  passwordTooLong: bodyTestCases.passwordTooLong,
+  passwordAndPasswordConfirmNonMatching:
+    bodyTestCases.passwordAndPasswordConfirmNonMatching,
+  // Custom test cases for patch tests, where setup needs to be different, etc.
+  handleTaken: {
+    testType: 'handle already in use',
+    setupPostFn: async () => {
+      /**
+       * Since user has to log in to update with patch, dbUserData is used for that.
+       * So create a different user with a new handle that the logged in user can
+       * conflict with when they try to update their handle.
+       */
+      await db.user.create({
+        data: {
+          ...dbUserData,
+          id: 'other-user',
+          handle: 'other_handle',
+        },
+      });
+    },
+    badData: {
+      handle: 'other_handle',
+    },
+    expectedBodyData: {
+      errors: [],
+      properties: {
+        handle: {
+          errors: ['That handle is already in use'],
+        },
+      },
+    },
+  },
+};
+
+/**
+ * Posting to database is quick, but generating fake
+ * data is REALLY slow, so generate the data once here
+ * and then post at the start of each test as required.
+ */
+let fakeUserData: Prisma.UserModel[];
+
+beforeAll(async () => {
+  fakeUserData = fakeData.createFakeUserDataMultiple(50);
+});
+
+beforeEach(dbHelpers.clearDb);
+
+describe(baseUrl, () => {
+  describe('POST', () => {
+    describe('when provided the correct data', () => {
+      it('returns status code 200', async () => {
+        const response = await request(server).post(baseUrl).send(userData);
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it('returns a success message and the created user, sans hash', async () => {
+        const response = await request(server).post(baseUrl).send(userData);
+        expect(response.body).toStrictEqual({
+          status: 'success',
+          message: 'User successfully created',
+          data: {
+            item: {
+              handle: userData.handle,
+              displayName: userData.displayName,
+              id: expect.any(String),
+              /**
+               * Dates are returned in response, but in string format.
+               * This means the resource types in /src/db are wrong
+               * for the client. The data will leave the server
+               * as a Date, but reach the client as a string.
+               */
+              createdAt: expect.any(String),
+              updatedAt: expect.any(String),
+            },
+          },
+        });
+      });
+
+      it('creates a user on the database with the relevant details', async () => {
+        await request(server).post(baseUrl).send(userData);
+
+        const dbUser = await db.user.findUnique({
+          where: {
+            handle: userData.handle,
+            displayName: userData.displayName,
+          },
+        });
+
+        expect(dbUser).not.toBeNull();
+        expect(dbUser?.handle).toStrictEqual(userData.handle);
+        expect(dbUser?.displayName).toStrictEqual(userData.displayName);
+      });
+
+      it('does not store the password in plaintext', async () => {
+        await request(server).post(baseUrl).send(userData);
+
+        const dbUser = await db.user.findUnique({
+          where: {
+            handle: userData.handle,
+            displayName: userData.displayName,
+          },
+        });
+
+        expect(dbUser).not.toBeNull();
+        expect(dbUser?.hash).not.toStrictEqual(userData.password);
+      });
+    });
+
+    describe.each(Object.values(bodyTestCases))(
+      'when provided: $testType',
+      ({ setupPostFn, badData, expectedBodyData }) => {
+        it('returns status code 400', async () => {
+          if (setupPostFn) {
+            await setupPostFn();
+          }
+          const response = await request(server).post(baseUrl).send(badData);
+          expect(response.status).toStrictEqual(400);
+        });
+
+        it('returns appropriate errors', async () => {
+          if (setupPostFn) {
+            await setupPostFn();
+          }
+          const response = await request(server).post(baseUrl).send(badData);
+
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: expectedBodyData,
+          });
+        });
+      },
+    );
+  });
+
+  describe('GET', () => {
+    it('returns status code 200 and by default 10 users in handle order', async () => {
+      const fakeUserCount = 20;
+      const users = await db.user.createManyAndReturn({
+        data: fakeUserData.slice(0, fakeUserCount),
+        omit: {
+          hash: true,
+        },
+      });
+
+      const firstTenResults = users
+        // There is possibly a divergence from how postgres sorts, leading to random test failures. Can't reproduce.
+        .sort((a, b) => a.handle.localeCompare(b.handle))
+        .slice(0, 10);
+
+      const response = await request(server).get(baseUrl);
+
+      expect(response.status).toStrictEqual(200);
+      expect(response.body).toStrictEqual({
+        status: 'success',
+        data: {
+          meta: pagedResponseMeta(fakeUserCount, 10, 0),
+          results: convertArrayDatesToStrings(firstTenResults),
+        },
+      });
+    });
+
+    describe('search parameters', () => {
+      describe('q', () => {
+        it('returns users that have a handle that partially matches (case insensitive)', async () => {
+          // Create a haystack.
+          const fakeUserCount = 10;
+          await db.user.createMany({
+            data: fakeUserData.slice(0, fakeUserCount),
+          });
+
+          // Now plant the needle.
+          const userToFindByHandle = await db.user.create({
+            data: {
+              handle: 'zyx',
+              displayName: 'Mega User',
+              hash: '12345',
+            },
+            omit: {
+              hash: true,
+            },
+          });
+
+          const response = await request(server).get(baseUrl).query({
+            q: 'ZYX',
+          });
+
+          expect(response.status).toStrictEqual(200);
+          expect(response.body).toStrictEqual({
+            status: 'success',
+            data: {
+              // Total is 1 since there should be only one user that matches q.
+              meta: pagedResponseMeta(1, 10, 0),
+              results: convertArrayDatesToStrings([userToFindByHandle]),
+            },
+          });
+        });
+
+        it('returns users that have a displayName that partially matches (case insensitive)', async () => {
+          // Create a haystack.
+          const fakeUserCount = 10;
+          await db.user.createMany({
+            data: fakeUserData.slice(0, fakeUserCount),
+          });
+
+          // Now plant the needle.
+          const userToFindByHandle = await db.user.create({
+            data: {
+              handle: 'user-to-find',
+              displayName: 'zyx',
+              hash: '12345',
+            },
+            omit: {
+              hash: true,
+            },
+          });
+
+          const response = await request(server).get(baseUrl).query({
+            q: 'ZYX',
+          });
+
+          expect(response.status).toStrictEqual(200);
+          expect(response.body).toStrictEqual({
+            status: 'success',
+            data: {
+              // Total is 1 since there should be only one user that matches q.
+              meta: pagedResponseMeta(1, 10, 0),
+              results: convertArrayDatesToStrings([userToFindByHandle]),
+            },
+          });
+        });
+      });
+
+      describe('orderBy', () => {
+        it.each([
+          {
+            columnName: 'id',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.id.localeCompare(b.id),
+          },
+          {
+            columnName: 'handle',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.handle.localeCompare(b.handle),
+          },
+          {
+            columnName: 'displayName',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.handle.localeCompare(b.displayName),
+          },
+          {
+            columnName: 'createdAt',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.createdAt.getTime() - b.createdAt.getTime(),
+          },
+          {
+            columnName: 'updatedAt',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.updatedAt.getTime() - b.updatedAt.getTime(),
+          },
+        ])(
+          'given $columnName, orders by that column in ascending order',
+          async ({ columnName, sortFn }) => {
+            const users = await db.user.createManyAndReturn({
+              data: fakeUserData.slice(0, 10),
+              omit: {
+                hash: true,
+              },
+            });
+
+            const expectedOrder = users.sort(sortFn);
+
+            const response = await request(server)
+              .get(baseUrl)
+              .query({
+                orderBy: [columnName],
+              });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.results).toStrictEqual(
+              convertArrayDatesToStrings(expectedOrder),
+            );
+          },
+        );
+
+        it('given an invalid column name, returns status code 400 and a message', async () => {
+          const response = await request(server)
+            .get(baseUrl)
+            .query({ orderBy: ['invalid-column-name'] });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                orderBy: {
+                  errors: [],
+                  items: [
+                    {
+                      // Why is the error not in here, but in a property of orderBy?
+                      // Think this is a consequence of how arrays are working there,
+                      // or maybe how the preprocess function is working?
+                      errors: [],
+                      properties: {
+                        orderBy: {
+                          errors: [
+                            'Can only order by: id, handle, displayName, createdAt, updatedAt',
+                          ],
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          });
+        });
+      });
+
+      describe('orderBy & sortOrder', () => {
+        it.each([
+          {
+            orderBy: ['id'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.id.localeCompare(b.id),
+          },
+          {
+            orderBy: ['id'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.id.localeCompare(a.id),
+          },
+          {
+            orderBy: ['handle'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.handle.localeCompare(b.handle),
+          },
+          {
+            orderBy: ['handle'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.handle.localeCompare(a.handle),
+          },
+          {
+            orderBy: ['displayName'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.displayName.localeCompare(b.displayName),
+          },
+          {
+            orderBy: ['displayName'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.displayName.localeCompare(a.displayName),
+          },
+          {
+            orderBy: ['createdAt'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.createdAt.getTime() - b.createdAt.getTime(),
+          },
+          {
+            orderBy: ['createdAt'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.createdAt.getTime() - a.createdAt.getTime(),
+          },
+          {
+            orderBy: ['updatedAt'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.updatedAt.getTime() - b.updatedAt.getTime(),
+          },
+          {
+            orderBy: ['updatedAt'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.updatedAt.getTime() - a.updatedAt.getTime(),
+          },
+        ])(
+          'given orderBy: $orderBy and sortOrder: $sortOrder, correctly orders by corresponding orderBy columns',
+          async ({ orderBy, sortOrder, sortFn }) => {
+            const users = await db.user.createManyAndReturn({
+              data: fakeUserData.slice(0, 10),
+              omit: {
+                hash: true,
+              },
+            });
+
+            const expectedOrder = users.sort(sortFn);
+
+            const response = await request(server).get(baseUrl).query({
+              orderBy,
+              sortOrder,
+            });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.results).toStrictEqual(
+              convertArrayDatesToStrings(expectedOrder),
+            );
+          },
+        );
+
+        it('given multiple orderBy and sortOrder values, works as expected', async () => {
+          const users = await db.user.createManyAndReturn({
+            data: fakeUserData.slice(0, 10),
+            omit: {
+              hash: true,
+            },
+          });
+
+          const expectedOrder = users
+            // Order needs to be reversed from what is given in orderBy.
+            .toSorted((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+            .toSorted((a, b) => a.handle.localeCompare(b.handle));
+
+          const response = await request(server)
+            .get(baseUrl)
+            .query({
+              orderBy: ['handle', 'updatedAt'],
+              sortOrder: ['asc', 'desc'],
+            });
+
+          expect(response.status).toStrictEqual(200);
+          expect(response.body.data.results).toStrictEqual(
+            convertArrayDatesToStrings(expectedOrder),
+          );
+        });
+      });
+
+      describe('skip', () => {
+        // Data goes here so we don't have to
+        // re-generate on every test case.
+        const userData: Prisma.UserModel[] = [];
+        for (let i = 0; i < 50; i++) {
+          userData.push(fakeData.createFakeUserData());
+        }
+
+        it('given a number, can be used to page through results until the end', async () => {
+          const users = await db.user.createManyAndReturn({
+            data: userData,
+            omit: {
+              hash: true,
+            },
+          });
+
+          const defaultPageSize = 10;
+          const expectedPageCount = users.length / defaultPageSize;
+
+          let skip = 0;
+          let pageCount = 0;
+
+          let response: Response;
+
+          do {
+            response = await request(server).get(baseUrl).query({
+              skip,
+            });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.meta).toStrictEqual(
+              pagedResponseMeta(users.length, defaultPageSize, skip),
+            );
+
+            skip += response.body.data.results.length;
+            pageCount++;
+          } while (!response.body.data.meta.atLastPage);
+
+          expect(pageCount).toStrictEqual(expectedPageCount);
+        });
+
+        it('given a non-number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: 'invalid-value',
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a number'],
+                },
+              },
+            },
+          });
+        });
+
+        it('given a negative number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: -1,
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a positive number'],
+                },
+              },
+            },
+          });
+        });
+      });
+
+      describe('take', () => {
+        it.each([1, 5, 10, 20, 50])(
+          'given a number, can be used to change the pageSize of results',
+          async (take) => {
+            // Since creating fake users is slow, check the existing fake user data
+            // to make sure there are enough users to test page size properly. This
+            // way we will know for sure that the page size is limited by the parameter.
+            expect(fakeUserData.length).greaterThanOrEqual(50);
+            // Post the fake users and create one extra for a total of 51.
+            const users = await db.user.createManyAndReturn({
+              data: [...fakeUserData, fakeData.createFakeUserData()],
+            });
+
+            const response = await request(server).get(baseUrl).query({
+              take,
+            });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.meta).toStrictEqual(
+              pagedResponseMeta(users.length, take, 0),
+            );
+            expect(response.body.data.results.length).toStrictEqual(take);
+          },
+        );
+
+        it('given a non-number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: 'invalid-value',
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a number'],
+                },
+              },
+            },
+          });
+        });
+
+        it('given a decimal number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: 3.14,
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a whole number'],
+                },
+              },
+            },
+          });
+        });
+
+        it('given a negative number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            take: -1,
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                take: {
+                  errors: ['Should be a positive number'],
+                },
+              },
+            },
+          });
+        });
+      });
+    });
+  });
+});
+
+describe(`${baseUrl}/:userId`, () => {
+  describe('PATCH', () => {
+    const loggedInUserData = dbUserData;
+    const url = `${baseUrl}/${loggedInUserData.id}`;
+
+    it('given an invalid userId param, returns status code 404 and a message', async () => {
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+      const response = await request(server)
+        .patch(`${baseUrl}/invalid-id`)
+        .set('Authorization', bearerToken);
+
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid userId param', () => {
+      describe('given the correct body data', () => {
+        it('returns status code 200', async () => {
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          // On PATCH, all values are optional, so can leave the body empty.
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken);
+
+          expect(response.status).toStrictEqual(200);
+        });
+
+        it('returns a success message', async () => {
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken)
+            .send();
+
+          expect(response.body.message).toStrictEqual(
+            'User successfully updated',
+          );
+        });
+
+        it('returns the updated user (sans hash) and updates the user on the database', async () => {
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+          const patchData = {
+            handle: 'donald_ronald',
+            displayName: 'Donron',
+          };
+
+          const response = await request(server)
+            .patch(url)
+            .set('Authorization', bearerToken)
+            .send(patchData);
+
+          const responseUser = response.body.data.item;
+
+          expect(responseUser).toBeDefined();
+          expect(response.body.data.item).toStrictEqual({
+            id: loggedInUserData.id,
+            createdAt: loggedInUserData.createdAt.toISOString(),
+            updatedAt: expect.any(String),
+            handle: patchData.handle,
+            displayName: patchData.displayName,
+          });
+
+          const dbUser = await db.user.findUnique({
+            where: {
+              id: loggedInUserData.id,
+            },
+          });
+
+          expect(dbUser).toStrictEqual({
+            ...responseUser,
+            createdAt: loggedInUserData.createdAt,
+            updatedAt: expect.any(Date),
+            hash: expect.any(String),
+          });
+        });
+      });
+
+      describe.each(Object.values(patchTestCases))(
+        'when provided: $testType',
+        ({ setupPostFn, badData, expectedBodyData }) => {
+          it('returns status code 400', async () => {
+            if (setupPostFn) {
+              await setupPostFn();
+            }
+
+            const bearerToken =
+              await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+            const response = await request(server)
+              .patch(url)
+              .set('Authorization', bearerToken)
+              .send(badData);
+
+            expect(response.status).toStrictEqual(400);
+          });
+
+          it('returns appropriate errors', async () => {
+            if (setupPostFn) {
+              await setupPostFn();
+            }
+
+            const bearerToken =
+              await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+            const response = await request(server)
+              .patch(url)
+              .set('Authorization', bearerToken)
+              .send(badData);
+
+            expect(response.body).toStrictEqual({
+              status: 'fail-validation',
+              data: expectedBodyData,
+            });
+          });
+        },
+      );
+    });
+  });
+
+  describe('DELETE', () => {
+    const loggedInUserData = dbUserData;
+    const url = `${baseUrl}/${loggedInUserData.id}`;
+
+    it('given an invalid userId param, returns status code 404 and a message', async () => {
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+      const response = await request(server)
+        .delete(`${baseUrl}/invalid-id`)
+        .set('Authorization', bearerToken);
+
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid userId param', () => {
+      it('returns status code 200', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .delete(url)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it('returns a success message', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .delete(url)
+          .set('Authorization', bearerToken);
+
+        expect(response.body.message).toStrictEqual(
+          'User successfully deleted',
+        );
+      });
+
+      it('returns the deleted user (sans hash) and deletes the user from the database', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(loggedInUserData);
+
+        const response = await request(server)
+          .delete(url)
+          .set('Authorization', bearerToken);
+
+        const responseUser = response.body.data.item;
+
+        expect(responseUser).toBeDefined();
+        expect(response.body.data.item).toStrictEqual({
+          id: loggedInUserData.id,
+          handle: loggedInUserData.handle,
+          displayName: loggedInUserData.displayName,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        });
+
+        const dbUser = await db.user.findUnique({
+          where: {
+            id: loggedInUserData.id,
+          },
+        });
+
+        expect(dbUser).toBeNull();
+      });
+    });
+  });
+
+  describe('GET', () => {
+    it('given a valid userId param, returns status code 200 and the user (sans hash)', async () => {
+      const user = await db.user.create({
+        data: dbUserData,
+      });
+
+      const response = await request(server).get(`${baseUrl}/${user.id}`);
+
+      expect(response.status).toStrictEqual(200);
+      expect(response.body).toStrictEqual({
+        status: 'success',
+        data: {
+          item: {
+            id: user.id,
+            handle: user.handle,
+            displayName: user.displayName,
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+          },
+        },
+      });
+    });
+
+    it('given an invalid userId param, returns status code 404 and a message', async () => {
+      const response = await request(server).get(`${baseUrl}/invalid-id`);
+
+      expect(response.status).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+  });
+});

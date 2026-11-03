@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2023",
+    "strict": true,
+    "esModuleInterop": true,
+    "ignoreDeprecations": "6.0",
+    "declaration": true,
+    "declarationMap": true,
+    "noEmitOnError": true,
+    "isolatedModules": true
+  },
+  "include": ["src"],
+  "exclude": ["dist"]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@repo/db",
+  "version": "1.0.0",
+  "private": "true",
+  "type": "module",
+  "exports": {
+    "./client": {
+      "types": "./dist/client.d.mts",
+      "default": "./dist/client.mjs"
+    },
+    "./prisma/*": {
+      "types": "./dist/generated/prisma/*.d.ts",
+      "default": "./dist/generated/prisma/*.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm generate && pnpm clean && pnpm tsc",
+    "build:watch": "pnpm generate && pnpm clean && pnpm tsc --watch",
+    "clean": "rm -rf dist/*",
+    "db:deploy": "pnpm prisma migrate deploy",
+    "db:dev": "pnpm prisma migrate dev",
+    "db:reset": "pnpm prisma migrate reset",
+    "lint": "pnpm biome check",
+    "lint:fix": "pnpm biome check --write",
+    "generate": "pnpm prisma generate",
+    "test:start": "./scripts/start-test-db.sh",
+    "test:stop": "./scripts/stop-test-db.sh"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
+    "prisma": "^7.10.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "dotenv": "^18.0.5",
+    "pg": "^8.23.1"
+  }
+}

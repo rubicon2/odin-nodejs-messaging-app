@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "*.env", "tsconfig.json"],
       "outputs": ["dist/**"]
     },
     "check-types": {
@@ -14,6 +15,21 @@
     },
     "lint": {
       "dependsOn": ["^lint"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^lint:fix"]
+    },
+    "test:int": {
+      "dependsOn": ["^test:int"]
+    },
+    "test:int:watch": {
+      "dependsOn": ["^test:int:watch"]
+    },
+    "test:unit": {
+      "dependsOn": ["^test:unit"]
+    },
+    "test:unit:watch": {
+      "dependsOn": ["^test:unit:watch"]
     }
   }
 }

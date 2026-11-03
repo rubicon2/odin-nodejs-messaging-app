@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "pnpm exec turbo build",
-    "dev": "pnpm exec turbo dev",
-    "lint": "pnpm exec turbo lint"
+    "build": "pnpm turbo build",
+    "dev": "pnpm turbo dev",
+    "lint": "pnpm turbo lint",
+    "lint:fix": "pnpm turbo lint:fix",
+    "test:int": "pnpm turbo test:int",
+    "test:int:watch": "pnpm turbo test:int:watch",
+    "test:unit": "pnpm turbo test:unit",
+    "test:unit:watch": "pnpm turbo test:unit:watch"
   },
   "devEngines": {
     "packageManager": {
@@ -18,7 +23,7 @@
     }
   },
   "devDependencies": {
-    "prettier": "^3.9.9",
+    "@biomejs/biome": "2.5.15",
     "turbo": "^2.11.7",
     "typescript": "^7.0.2"
   }
