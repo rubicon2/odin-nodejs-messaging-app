@@ -1,8 +1,10 @@
 import { convertArrayDatesToStrings } from '@repo/all-dates-to-iso-strings';
+import type { Prisma } from '@repo/db/prisma/client';
 import { pagedResponseMeta } from '@repo/response-json';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mts';
+import type { UserResource } from '../../../src/db/userResource.mts';
 import { server } from '../../../src/server.mjs';
 import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mts';
 import * as dbHelpers from '../../helpers/db.mjs';
@@ -402,6 +404,181 @@ describe(baseUrl, () => {
               results: convertArrayDatesToStrings([userToFindByHandle]),
             },
           });
+        });
+      });
+
+      describe('orderBy', () => {
+        // Data goes here so we don't have to
+        // re-generate on every test case.
+        const userData: Prisma.UserModel[] = [];
+        for (let i = 0; i < 10; i++) {
+          userData.push(fakeData.createFakeUserData());
+        }
+
+        it.each([
+          {
+            columnName: 'id',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.id.localeCompare(b.id),
+          },
+          {
+            columnName: 'handle',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.handle.localeCompare(b.handle),
+          },
+          {
+            columnName: 'displayName',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.handle.localeCompare(b.displayName),
+          },
+          {
+            columnName: 'createdAt',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.createdAt.getTime() - b.createdAt.getTime(),
+          },
+          {
+            columnName: 'updatedAt',
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.updatedAt.getTime() - b.updatedAt.getTime(),
+          },
+        ])(
+          'given $columnName, orders by that column in ascending order',
+          async ({ columnName, sortFn }) => {
+            const users = await db.user.createManyAndReturn({
+              data: userData,
+              omit: {
+                hash: true,
+              },
+            });
+
+            const expectedOrder = users.sort(sortFn);
+
+            const response = await request(server)
+              .get(baseUrl)
+              .query({
+                orderBy: [columnName],
+              });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.results).toStrictEqual(
+              convertArrayDatesToStrings(expectedOrder),
+            );
+          },
+        );
+      });
+
+      describe('orderBy & sortOrder', () => {
+        // Data goes here so we don't have to
+        // re-generate on every test case.
+        const userData: Prisma.UserModel[] = [];
+        for (let i = 0; i < 10; i++) {
+          userData.push(fakeData.createFakeUserData());
+        }
+
+        it.each([
+          {
+            orderBy: ['id'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.id.localeCompare(b.id),
+          },
+          {
+            orderBy: ['id'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.id.localeCompare(a.id),
+          },
+          {
+            orderBy: ['handle'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.handle.localeCompare(b.handle),
+          },
+          {
+            orderBy: ['handle'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.handle.localeCompare(a.handle),
+          },
+          {
+            orderBy: ['displayName'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.displayName.localeCompare(b.displayName),
+          },
+          {
+            orderBy: ['displayName'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.displayName.localeCompare(a.displayName),
+          },
+          {
+            orderBy: ['createdAt'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.createdAt.getTime() - b.createdAt.getTime(),
+          },
+          {
+            orderBy: ['createdAt'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.createdAt.getTime() - a.createdAt.getTime(),
+          },
+          {
+            orderBy: ['updatedAt'],
+            sortOrder: ['asc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              a.updatedAt.getTime() - b.updatedAt.getTime(),
+          },
+          {
+            orderBy: ['updatedAt'],
+            sortOrder: ['desc'],
+            sortFn: (a: UserResource, b: UserResource) =>
+              b.updatedAt.getTime() - a.updatedAt.getTime(),
+          },
+        ])(
+          'given orderBy: $orderBy and sortOrder: $sortOrder, correctly orders by corresponding orderBy columns',
+          async ({ orderBy, sortOrder, sortFn }) => {
+            const users = await db.user.createManyAndReturn({
+              data: userData,
+              omit: {
+                hash: true,
+              },
+            });
+
+            const expectedOrder = users.sort(sortFn);
+
+            const response = await request(server).get(baseUrl).query({
+              orderBy,
+              sortOrder,
+            });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.results).toStrictEqual(
+              convertArrayDatesToStrings(expectedOrder),
+            );
+          },
+        );
+
+        it('given multiple orderBy and sortOrder values, works as expected', async () => {
+          const users = await fakeData.createFakeUsers(10);
+
+          const expectedOrder = users
+            // Order needs to be reversed from what is given in orderBy.
+            .toSorted((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+            .toSorted((a, b) => a.handle.localeCompare(b.handle));
+
+          const response = await request(server)
+            .get(baseUrl)
+            .query({
+              orderBy: ['handle', 'updatedAt'],
+              sortOrder: ['asc', 'desc'],
+            });
+
+          expect(response.status).toStrictEqual(200);
+          expect(response.body.data.results).toStrictEqual(
+            convertArrayDatesToStrings(expectedOrder),
+          );
         });
       });
     });
