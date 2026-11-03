@@ -17,6 +17,16 @@ export function createFakeUserData(): Prisma.UserModel {
   };
 }
 
+export function createFakeUserDataMultiple(count: number): Prisma.UserModel[] {
+  const userData: Prisma.UserModel[] = [];
+
+  for (let i = 0; i < count; i++) {
+    userData.push(createFakeUserData());
+  }
+
+  return userData;
+}
+
 /**
  * Post fake users and mimic includes and omits
  * that happen on the real server, so it is easy
