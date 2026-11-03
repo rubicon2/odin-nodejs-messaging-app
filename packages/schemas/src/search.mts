@@ -14,7 +14,8 @@
 
 import * as z from 'zod';
 import { preprocesses as arrayPreprocesses } from './array.mjs';
-import { intErrorMsg, numberErrorMsg, sortOrderErrorMsg } from './errors.mjs';
+import { sortOrderErrorMsg } from './errors.mjs';
+import { fields as numberFields } from './number.mjs';
 
 const sortOrder = z.coerce
   .string()
@@ -27,8 +28,8 @@ const sortOrder = z.coerce
 type SortOrder = z.infer<typeof sortOrder>;
 
 const searchParams = z.object({
-  take: z.coerce.number(numberErrorMsg()).int(intErrorMsg()).default(10),
-  skip: z.coerce.number(numberErrorMsg()).int(intErrorMsg()).default(0),
+  take: numberFields.positiveInt.default(10),
+  skip: numberFields.positiveInt.default(0),
   cursor: z.coerce.string().optional(),
   q: z.coerce.string().optional(),
   // By default, sort by id so we have consistent ordering.

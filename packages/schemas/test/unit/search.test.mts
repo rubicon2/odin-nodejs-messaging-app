@@ -145,6 +145,11 @@ describe('chains', () => {
           expectedErrorMsg: 'Should be a whole number',
         },
         {
+          testType: 'negative take',
+          badInput: { take: -1 },
+          expectedErrorMsg: 'Should be a positive number',
+        },
+        {
           testType: 'non-number skip',
           badInput: { skip: 'a string' },
           expectedErrorMsg: 'Should be a number',
@@ -155,12 +160,17 @@ describe('chains', () => {
           expectedErrorMsg: 'Should be a whole number',
         },
         {
+          testType: 'negative skip',
+          badInput: { skip: -1 },
+          expectedErrorMsg: 'Should be a positive number',
+        },
+        {
           testType: 'sortOrder that is not "asc" or "desc"',
           badInput: { sortOrder: '3.14' },
           expectedErrorMsg: 'Should be asc or desc',
         },
       ])(
-        'returns an appropriate error when $testType',
+        'returns an appropriate error when given $testType',
         ({ badInput, expectedErrorMsg }) => {
           expect(() =>
             chains.searchParams.parse({ ...goodInput, ...badInput }),
@@ -248,6 +258,11 @@ describe('chains', () => {
           expectedErrorMsg: 'Should be a whole number',
         },
         {
+          testType: 'negative take',
+          badInput: { take: -1 },
+          expectedErrorMsg: 'Should be a positive number',
+        },
+        {
           testType: 'non-number skip',
           badInput: { skip: 'a string' },
           expectedErrorMsg: 'Should be a number',
@@ -258,13 +273,18 @@ describe('chains', () => {
           expectedErrorMsg: 'Should be a whole number',
         },
         {
+          testType: 'negative skip',
+          badInput: { skip: -1 },
+          expectedErrorMsg: 'Should be a positive number',
+        },
+        {
           testType: 'bad orderBy column name',
           badInput: { orderBy: '3.14' },
           expectedErrorMsg:
             'Can only order by: id, handle, displayName, createdAt, updatedAt',
         },
       ])(
-        'returns an appropriate error when $testType',
+        'returns an appropriate error when given $testType',
         ({ badInput, expectedErrorMsg }) => {
           expect(() =>
             chains.searchUserParams.parse({ ...goodInput, ...badInput }),
