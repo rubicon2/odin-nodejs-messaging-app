@@ -465,6 +465,40 @@ describe(baseUrl, () => {
             );
           },
         );
+
+        it('given an invalid column name, returns status code 400 and a message', async () => {
+          const response = await request(server)
+            .get(baseUrl)
+            .query({ orderBy: ['invalid-column-name'] });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                orderBy: {
+                  errors: [],
+                  items: [
+                    {
+                      // Why is the error not in here, but in a property of orderBy?
+                      // Think this is a consequence of how arrays are working there,
+                      // or maybe how the preprocess function is working?
+                      errors: [],
+                      properties: {
+                        orderBy: {
+                          errors: [
+                            'Can only order by: id, handle, displayName, createdAt, updatedAt',
+                          ],
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          });
+        });
       });
 
       describe('orderBy & sortOrder', () => {
