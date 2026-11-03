@@ -154,6 +154,11 @@ describe('chains', () => {
           badInput: { skip: '3.14' },
           expectedErrorMsg: 'Should be a whole number',
         },
+        {
+          testType: 'sortOrder that is not "asc" or "desc"',
+          badInput: { sortOrder: '3.14' },
+          expectedErrorMsg: 'Should be asc or desc',
+        },
       ])(
         'returns an appropriate error when $testType',
         ({ badInput, expectedErrorMsg }) => {
@@ -251,6 +256,12 @@ describe('chains', () => {
           testType: 'non-integer skip',
           badInput: { skip: '3.14' },
           expectedErrorMsg: 'Should be a whole number',
+        },
+        {
+          testType: 'bad orderBy column name',
+          badInput: { orderBy: '3.14' },
+          expectedErrorMsg:
+            'Can only order by: id, handle, displayName, createdAt, updatedAt',
         },
       ])(
         'returns an appropriate error when $testType',
