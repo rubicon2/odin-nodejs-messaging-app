@@ -1,6 +1,7 @@
 import { convertArrayDatesToStrings } from '@repo/all-dates-to-iso-strings';
 import type { Prisma } from '@repo/db/prisma/client';
 import { pagedResponseMeta } from '@repo/response-json';
+import type { Response } from 'supertest';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mts';
@@ -613,6 +614,172 @@ describe(baseUrl, () => {
           expect(response.body.data.results).toStrictEqual(
             convertArrayDatesToStrings(expectedOrder),
           );
+        });
+      });
+
+      describe('skip', () => {
+        // Data goes here so we don't have to
+        // re-generate on every test case.
+        const userData: Prisma.UserModel[] = [];
+        for (let i = 0; i < 50; i++) {
+          userData.push(fakeData.createFakeUserData());
+        }
+
+        it('given a number, can be used to page through results until the end', async () => {
+          const users = await db.user.createManyAndReturn({
+            data: userData,
+            omit: {
+              hash: true,
+            },
+          });
+
+          const defaultPageSize = 10;
+          const expectedPageCount = users.length / defaultPageSize;
+
+          let skip = 0;
+          let pageCount = 0;
+
+          let response: Response;
+
+          do {
+            response = await request(server).get(baseUrl).query({
+              skip,
+            });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.meta).toStrictEqual(
+              pagedResponseMeta(users.length, defaultPageSize, skip),
+            );
+
+            skip += response.body.data.results.length;
+            pageCount++;
+          } while (!response.body.data.meta.atLastPage);
+
+          expect(pageCount).toStrictEqual(expectedPageCount);
+        });
+
+        it('given a non-number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: 'invalid-value',
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a number'],
+                },
+              },
+            },
+          });
+        });
+
+        it('given a negative number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: -1,
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a positive number'],
+                },
+              },
+            },
+          });
+        });
+      });
+
+      describe('take', () => {
+        // Data goes here so we don't have to
+        // re-generate on every test case.
+        const userData: Prisma.UserModel[] = [];
+        for (let i = 0; i < 50; i++) {
+          userData.push(fakeData.createFakeUserData());
+        }
+
+        it.each([1, 5, 10, 20, 50])(
+          'given a number, can be used to change the pageSize of results',
+          async (take) => {
+            // Make sure there are more users than the page size we are testing. This
+            // way we will know for sure that the page size is limited by the parameter.
+            const totalUserCount = take + 1;
+            await fakeData.createFakeUsers(totalUserCount);
+
+            const response = await request(server).get(baseUrl).query({
+              take,
+            });
+
+            expect(response.status).toStrictEqual(200);
+            expect(response.body.data.meta).toStrictEqual(
+              pagedResponseMeta(totalUserCount, take, 0),
+            );
+            expect(response.body.data.results.length).toStrictEqual(take);
+          },
+        );
+
+        it('given a non-number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: 'invalid-value',
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a number'],
+                },
+              },
+            },
+          });
+        });
+
+        it('given a decimal number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            skip: 3.14,
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                skip: {
+                  errors: ['Should be a whole number'],
+                },
+              },
+            },
+          });
+        });
+
+        it('given a negative number, responds with status code 400 and a message', async () => {
+          const response = await request(server).get(baseUrl).query({
+            take: -1,
+          });
+
+          expect(response.status).toStrictEqual(400);
+          expect(response.body).toStrictEqual({
+            status: 'fail-validation',
+            data: {
+              errors: [],
+              properties: {
+                take: {
+                  errors: ['Should be a positive number'],
+                },
+              },
+            },
+          });
         });
       });
     });
