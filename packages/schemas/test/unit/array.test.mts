@@ -22,9 +22,11 @@ describe('preprocesses', () => {
       });
 
       it('given invalid elements, returns errors in the expected format', () => {
-        const parseResult = preprocesses.ensureArray(z.coerce.number('Not a number')).safeParse(['1', 'invalid', 'also-invalid'])
+        const parseResult = preprocesses
+          .ensureArray(z.coerce.number('Not a number'))
+          .safeParse(['1', 'invalid', 'also-invalid']);
         expect(parseResult.success).toStrictEqual(false);
-        
+
         // biome-ignore lint: If parseResult.success is true, parseResult error must be present. If not, that's a zod bug.
         const errors = z.treeifyError(parseResult.error!);
         expect(errors).toEqual({
@@ -34,14 +36,14 @@ describe('preprocesses', () => {
             // but fails the test anyway. So for this test only, making the assertion with toEqual instead.
             undefined,
             {
-              errors: ['Not a number']
+              errors: ['Not a number'],
             },
             {
-              errors: ['Not a number']
-            }
-          ]
-        })
-      })
+              errors: ['Not a number'],
+            },
+          ],
+        });
+      });
     });
   });
 });
