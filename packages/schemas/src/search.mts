@@ -13,6 +13,7 @@
  */
 
 import * as z from 'zod';
+import { preprocesses as arrayPreprocesses } from './array.mjs';
 import { intErrorMsg, numberErrorMsg, sortOrderErrorMsg } from './errors.mjs';
 
 const sortOrder = z.coerce
@@ -31,8 +32,8 @@ const searchParams = z.object({
   cursor: z.coerce.string().optional(),
   q: z.coerce.string().optional(),
   // By default, sort by id so we have consistent ordering.
-  orderBy: z.array(z.coerce.string()).default(['id']),
-  sortOrder: z.array(sortOrder).default(['asc']),
+  orderBy: arrayPreprocesses.ensureArray(z.coerce.string()).default(['id']),
+  sortOrder: arrayPreprocesses.ensureArray(sortOrder).default(['asc']),
 });
 
 type SearchParams = z.infer<typeof searchParams>;
@@ -69,8 +70,10 @@ const searchUserSortColumn = z.coerce
  * default orderBy and sortOrder parameters.
  */
 const searchUserParams = searchParams.extend({
-  orderBy: z.array(searchUserSortColumn).default(['handle']),
-  sortOrder: z.array(sortOrder).default(['asc']),
+  orderBy: arrayPreprocesses
+    .ensureArray(searchUserSortColumn)
+    .default(['handle']),
+  sortOrder: arrayPreprocesses.ensureArray(sortOrder).default(['asc']),
 });
 
 type SearchUserParams = z.infer<typeof searchUserParams>;
