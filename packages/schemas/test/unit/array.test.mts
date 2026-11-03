@@ -20,6 +20,28 @@ describe('preprocesses', () => {
           preprocesses.ensureArray(z.coerce.string()).parse([1, 2, 3]),
         ).toStrictEqual(['1', '2', '3']);
       });
+
+      it('given invalid elements, returns errors in the expected format', () => {
+        const parseResult = preprocesses.ensureArray(z.coerce.number('Not a number')).safeParse(['1', 'invalid', 'also-invalid'])
+        expect(parseResult.success).toStrictEqual(false);
+        
+        // biome-ignore lint: If parseResult.success is true, parseResult error must be present. If not, that's a zod bug.
+        const errors = z.treeifyError(parseResult.error!);
+        expect(errors).toEqual({
+          errors: [],
+          items: [
+            // undefined array element seems to mess with toStrictEqual - it says "no visual difference"
+            // but fails the test anyway. So for this test only, making the assertion with toEqual instead.
+            undefined,
+            {
+              errors: ['Not a number']
+            },
+            {
+              errors: ['Not a number']
+            }
+          ]
+        })
+      })
     });
   });
 });
