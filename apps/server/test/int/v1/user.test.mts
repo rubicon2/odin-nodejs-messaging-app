@@ -3,7 +3,7 @@ import type { Prisma } from '@repo/db/prisma/client';
 import { pagedResponseMeta } from '@repo/response-json';
 import type { Response } from 'supertest';
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mts';
 import type { UserResource } from '../../../src/db/userResource.mts';
 import { server } from '../../../src/server.mjs';
@@ -231,6 +231,17 @@ const patchTestCases: Record<string, TestCaseData> = {
   },
 };
 
+/**
+ * Posting to database is quick, but generating fake
+ * data is REALLY slow, so generate the data once here
+ * and then post at the start of each test as required.
+ */
+let fakeUserData: Prisma.UserModel[];
+
+beforeAll(async () => {
+  fakeUserData = fakeData.createFakeUserDataMultiple(50);
+});
+
 beforeEach(dbHelpers.clearDb);
 
 describe(baseUrl, () => {
@@ -322,8 +333,14 @@ describe(baseUrl, () => {
 
   describe('GET', () => {
     it('returns status code 200 and by default 10 users in handle order', async () => {
-      // Create a bunch of fake users. This takes ages.
-      const users = await fakeData.createFakeUsers(50);
+      const fakeUserCount = 20;
+      const users = await db.user.createManyAndReturn({
+        data: fakeUserData.slice(0, fakeUserCount),
+        omit: {
+          hash: true,
+        },
+      });
+
       const firstTenResults = users
         // There is possibly a divergence from how postgres sorts, leading to random test failures. Can't reproduce.
         .sort((a, b) => a.handle.localeCompare(b.handle))
@@ -335,7 +352,7 @@ describe(baseUrl, () => {
       expect(response.body).toStrictEqual({
         status: 'success',
         data: {
-          meta: pagedResponseMeta(50, 10, 0),
+          meta: pagedResponseMeta(fakeUserCount, 10, 0),
           results: convertArrayDatesToStrings(firstTenResults),
         },
       });
@@ -346,7 +363,9 @@ describe(baseUrl, () => {
         it('returns users that have a handle that partially matches (case insensitive)', async () => {
           // Create a haystack.
           const fakeUserCount = 10;
-          await fakeData.createFakeUsers(fakeUserCount);
+          await db.user.createMany({
+            data: fakeUserData.slice(0, fakeUserCount),
+          });
 
           // Now plant the needle.
           const userToFindByHandle = await db.user.create({
@@ -378,7 +397,9 @@ describe(baseUrl, () => {
         it('returns users that have a displayName that partially matches (case insensitive)', async () => {
           // Create a haystack.
           const fakeUserCount = 10;
-          await fakeData.createFakeUsers(fakeUserCount);
+          await db.user.createMany({
+            data: fakeUserData.slice(0, fakeUserCount),
+          });
 
           // Now plant the needle.
           const userToFindByHandle = await db.user.create({
@@ -409,13 +430,6 @@ describe(baseUrl, () => {
       });
 
       describe('orderBy', () => {
-        // Data goes here so we don't have to
-        // re-generate on every test case.
-        const userData: Prisma.UserModel[] = [];
-        for (let i = 0; i < 10; i++) {
-          userData.push(fakeData.createFakeUserData());
-        }
-
         it.each([
           {
             columnName: 'id',
@@ -446,7 +460,7 @@ describe(baseUrl, () => {
           'given $columnName, orders by that column in ascending order',
           async ({ columnName, sortFn }) => {
             const users = await db.user.createManyAndReturn({
-              data: userData,
+              data: fakeUserData.slice(0, 10),
               omit: {
                 hash: true,
               },
@@ -503,13 +517,6 @@ describe(baseUrl, () => {
       });
 
       describe('orderBy & sortOrder', () => {
-        // Data goes here so we don't have to
-        // re-generate on every test case.
-        const userData: Prisma.UserModel[] = [];
-        for (let i = 0; i < 10; i++) {
-          userData.push(fakeData.createFakeUserData());
-        }
-
         it.each([
           {
             orderBy: ['id'],
@@ -575,7 +582,7 @@ describe(baseUrl, () => {
           'given orderBy: $orderBy and sortOrder: $sortOrder, correctly orders by corresponding orderBy columns',
           async ({ orderBy, sortOrder, sortFn }) => {
             const users = await db.user.createManyAndReturn({
-              data: userData,
+              data: fakeUserData.slice(0, 10),
               omit: {
                 hash: true,
               },
@@ -596,7 +603,12 @@ describe(baseUrl, () => {
         );
 
         it('given multiple orderBy and sortOrder values, works as expected', async () => {
-          const users = await fakeData.createFakeUsers(10);
+          const users = await db.user.createManyAndReturn({
+            data: fakeUserData.slice(0, 10),
+            omit: {
+              hash: true,
+            },
+          });
 
           const expectedOrder = users
             // Order needs to be reversed from what is given in orderBy.
@@ -698,20 +710,17 @@ describe(baseUrl, () => {
       });
 
       describe('take', () => {
-        // Data goes here so we don't have to
-        // re-generate on every test case.
-        const userData: Prisma.UserModel[] = [];
-        for (let i = 0; i < 50; i++) {
-          userData.push(fakeData.createFakeUserData());
-        }
-
         it.each([1, 5, 10, 20, 50])(
           'given a number, can be used to change the pageSize of results',
           async (take) => {
-            // Make sure there are more users than the page size we are testing. This
+            // Since creating fake users is slow, check the existing fake user data
+            // to make sure there are enough users to test page size properly. This
             // way we will know for sure that the page size is limited by the parameter.
-            const totalUserCount = take + 1;
-            await fakeData.createFakeUsers(totalUserCount);
+            expect(fakeUserData.length).greaterThanOrEqual(50);
+            // Post the fake users and create one extra for a total of 51.
+            const users = await db.user.createManyAndReturn({
+              data: [...fakeUserData, fakeData.createFakeUserData()],
+            });
 
             const response = await request(server).get(baseUrl).query({
               take,
@@ -719,7 +728,7 @@ describe(baseUrl, () => {
 
             expect(response.status).toStrictEqual(200);
             expect(response.body.data.meta).toStrictEqual(
-              pagedResponseMeta(totalUserCount, take, 0),
+              pagedResponseMeta(users.length, take, 0),
             );
             expect(response.body.data.results.length).toStrictEqual(take);
           },
