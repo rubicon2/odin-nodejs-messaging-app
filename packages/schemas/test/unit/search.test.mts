@@ -45,15 +45,15 @@ describe('fields', () => {
 });
 
 describe('chains', () => {
-  // So the defaults don't have to be typed manually over and over.
-  const defaultOutput = {
-    take: 10,
-    skip: 0,
-    orderBy: ['id'],
-    sortOrder: ['asc'],
-  };
-
   describe('searchParams', () => {
+    // So the defaults don't have to be typed manually over and over.
+    const defaultOutput = {
+      take: 10,
+      skip: 0,
+      orderBy: ['id'],
+      sortOrder: ['asc'],
+    };
+
     const goodInput = {
       take: '10',
       skip: '50',
@@ -106,6 +106,30 @@ describe('chains', () => {
           cursor: '97',
         });
       });
+
+      it('coerces a single orderBy parameter into an array', () => {
+        const output = chains.searchParams.parse({ orderBy: 'id' });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          orderBy: ['id'],
+        });
+      });
+
+      it('coerces a single sortOrder parameter into an array', () => {
+        const output = chains.searchParams.parse({ sortOrder: 'desc' });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          sortOrder: ['desc'],
+        });
+      });
+
+      it('coerces a non-string orderBy parameter into a string', () => {
+        const output = chains.searchParams.parse({ orderBy: 97 });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          orderBy: ['97'],
+        });
+      });
     });
 
     describe('fail', () => {
@@ -142,6 +166,14 @@ describe('chains', () => {
   });
 
   describe('searchUserParams', () => {
+    // So the defaults don't have to be typed manually over and over.
+    const defaultOutput = {
+      take: 10,
+      skip: 0,
+      orderBy: ['handle'],
+      sortOrder: ['asc'],
+    };
+
     const goodInput = {
       take: '10',
       skip: '50',
@@ -176,6 +208,24 @@ describe('chains', () => {
         it('orders by ascending user handle', () => {
           expect(output.orderBy).toStrictEqual(['handle']);
           expect(output.sortOrder).toStrictEqual(['asc']);
+        });
+      });
+
+      it('coerces a single orderBy parameter into an array', () => {
+        const output = chains.searchUserParams.parse({
+          orderBy: 'displayName',
+        });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          orderBy: ['displayName'],
+        });
+      });
+
+      it('coerces a single sortOrder parameter into an array', () => {
+        const output = chains.searchUserParams.parse({ sortOrder: 'desc' });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          sortOrder: ['desc'],
         });
       });
     });
