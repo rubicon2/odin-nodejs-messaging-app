@@ -130,6 +130,22 @@ describe('chains', () => {
           orderBy: ['97'],
         });
       });
+
+      it('coerces a string number skip parameter into a number', () => {
+        const output = chains.searchParams.parse({ skip: '97' });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          skip: 97,
+        });
+      });
+
+      it('coerces a string number take parameter into a number', () => {
+        const output = chains.searchParams.parse({ take: '97' });
+        expect(output).toStrictEqual({
+          ...defaultOutput,
+          take: 97,
+        });
+      });
     });
 
     describe('fail', () => {
