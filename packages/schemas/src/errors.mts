@@ -13,3 +13,5 @@ export const positiveNumberMsg = () => 'Should be a positive number';
 export const intErrorMsg = () => 'Should be a whole number';
 
 export const sortOrderErrorMsg = () => 'Should be asc or desc';
+
+export const notUuidMsg = () => 'Should be a uuid';
