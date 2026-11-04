@@ -36,8 +36,8 @@ model Chat {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   title        String?   @db.VarChar(255)
-  createdById  String
-  createdBy    User      @relation("createdChats", fields:[createdById], references: [id])
+  createdById  String?
+  createdBy    User?      @relation("createdChats", fields:[createdById], references: [id], onDelete: SetNull)
   invites      Invite[]
   participants User[]    @relation("chats")
   messages     Message[]
@@ -48,18 +48,18 @@ model Message {
   createdAt   DateTime @default(now())
   textContent String
   chatId      String
-  chat        Chat     @relation(fields: [chatId], references: [id])
-  sentById    String
-  sentBy      User     @relation(fields: [sentById], references: [id])
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sentById    String?
+  sentBy      User?     @relation(fields: [sentById], references: [id], onDelete: SetNull)
 }
 
 model Invite {
   id          String   @id @default(uuid())
   createdAt   DateTime @default(now())
   createdById String
-  createdBy   User     @relation("sentInvites", fields: [createdById], references: [id])
+  createdBy   User     @relation("sentInvites", fields: [createdById], references: [id], onDelete: Cascade)
   inviteeId   String
-  invitee     User     @relation("receivedInvites", fields: [inviteeId], references: [id])
+  invitee     User     @relation("receivedInvites", fields: [inviteeId], references: [id], onDelete: Cascade)
   chatId      String
-  chat        Chat     @relation(fields: [chatId], references: [id])
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
 }
