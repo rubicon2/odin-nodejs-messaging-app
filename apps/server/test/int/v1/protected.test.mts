@@ -28,6 +28,28 @@ const routeTestCases: Record<string, TestCaseData> = {
     method: 'post',
     url: `/v1/chat`,
   },
+  patchChat: {
+    method: 'patch',
+    url: `/v1/chat/my-chat`,
+    setupFn: async () => {
+      // Post user so we can make them a chat participant, then create access token in test.
+      await db.user.create({
+        data: dbData.dbUserData,
+      });
+
+      await db.chat.create({
+        data: {
+          id: 'my-chat',
+          title: 'My Chat Title',
+          participants: {
+            connect: {
+              id: dbData.dbUserData.id,
+            },
+          },
+        },
+      });
+    },
+  },
   patchUser: {
     method: 'patch',
     url: `/v1/user/${dbData.dbUserData.id}`,
@@ -90,6 +112,44 @@ describe('given a valid access token', () => {
       expect(response.status).toStrictEqual(400);
     });
   });
+
+  describe.each([routeTestCases.patchChat])(
+    '$method $url',
+    ({ method, url, setupFn }) => {
+      it('allows a user to update a chat they are participating in', async () => {
+        if (setupFn) {
+          await setupFn();
+        }
+
+        // User created on db in setupFn, for these tests.
+        const bearerToken = createBearerHeader(dbData.dbUserData);
+
+        const response = await request(server)
+          [method](url)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it('does not allow a user to update a chat they are not part of', async () => {
+        if (setupFn) {
+          await setupFn();
+        }
+
+        const bearerToken = await createLoggedInUserAndGetBearerHeader({
+          ...dbData.dbUserData,
+          id: 'some-other-user-id',
+          handle: 'some_other_handle',
+        });
+
+        const response = await request(server)
+          [method](url)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(403);
+      });
+    },
+  );
 
   describe.each([routeTestCases.patchUser, routeTestCases.deleteUser])(
     '$method $url',

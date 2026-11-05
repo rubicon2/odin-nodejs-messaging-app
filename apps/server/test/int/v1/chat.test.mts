@@ -1,8 +1,12 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { chatResourceArgs } from '../../../src/db/chatResource.mts';
 import { client as db } from '../../../src/db/client.mjs';
 import { server } from '../../../src/server.mjs';
-import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mjs';
+import {
+  createBearerHeader,
+  createLoggedInUserAndGetBearerHeader,
+} from '../../helpers/auth.mjs';
 import * as dbHelpers from '../../helpers/db.mjs';
 import * as dbData from '../../helpers/dbData.mjs';
 
@@ -16,7 +20,7 @@ interface ValidationTestCaseData {
       { errors: string[]; items?: { errors: string[] }[] }
     >;
   };
-  setupPostFn?: () => void;
+  setupFn?: () => void;
 }
 
 const validationTestCaseData: Record<string, ValidationTestCaseData> = {
@@ -284,6 +288,217 @@ describe(baseUrl, () => {
           expect(response.body).toStrictEqual({
             status: 'fail-validation',
             data: expectedBodyData,
+          });
+        },
+      );
+    });
+  });
+
+  describe('PATCH', () => {
+    it('given an invalid chatId param, returns status code 404 and a message', async () => {
+      const bearerToken = await createLoggedInUserAndGetBearerHeader(
+        dbData.dbUserData,
+      );
+
+      const response = await request(server)
+        .patch(`${baseUrl}/invalid-id`)
+        .set('Authorization', bearerToken);
+
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid chatId param', () => {
+      describe('given the correct body data', () => {
+        it('returns status code 200', async () => {
+          const bearerToken = await createLoggedInUserAndGetBearerHeader(
+            dbData.dbUserData,
+          );
+
+          // Create a chat to patch.
+          const chat = await db.chat.create({
+            data: {
+              participants: {
+                connect: [
+                  {
+                    id: dbData.dbUserData.id,
+                  },
+                ],
+              },
+            },
+          });
+
+          // On PATCH, all values are optional, so can leave the body empty.
+          const response = await request(server)
+            .patch(`${baseUrl}/${chat.id}`)
+            .set('Authorization', bearerToken);
+
+          expect(response.status).toStrictEqual(200);
+        });
+
+        it('returns a success message', async () => {
+          const bearerToken = await createLoggedInUserAndGetBearerHeader(
+            dbData.dbUserData,
+          );
+
+          // Create a chat to patch.
+          const chat = await db.chat.create({
+            data: {
+              participants: {
+                connect: [
+                  {
+                    id: dbData.dbUserData.id,
+                  },
+                ],
+              },
+            },
+          });
+
+          const response = await request(server)
+            .patch(`${baseUrl}/${chat.id}`)
+            .set('Authorization', bearerToken)
+            .send();
+
+          expect(response.body.message).toStrictEqual(
+            'Chat successfully updated',
+          );
+        });
+
+        it('returns the updated chat and updates the chat on the database', async () => {
+          const userData = dbData.dbUserData;
+          const bearerToken =
+            await createLoggedInUserAndGetBearerHeader(userData);
+
+          // Create a chat to patch.
+          const chat = await db.chat.create({
+            data: {
+              title: 'My Original Chat Title',
+              participants: {
+                connect: [
+                  {
+                    id: userData.id,
+                  },
+                ],
+              },
+            },
+          });
+
+          const patchData = {
+            title: 'My Updated Chat Title',
+          };
+
+          const response = await request(server)
+            .patch(`${baseUrl}/${chat.id}`)
+            .set('Authorization', bearerToken)
+            .send(patchData);
+
+          const responseChat = response.body.data.item;
+
+          expect(responseChat).toBeDefined();
+          expect(responseChat).toStrictEqual({
+            id: expect.any(String),
+            createdBy: null,
+            createdById: null,
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            title: patchData.title,
+            invites: [],
+            participants: [
+              {
+                displayName: userData.displayName,
+                handle: userData.handle,
+                id: userData.id,
+              },
+            ],
+          });
+
+          // Check it was updated on the database.
+          const dbChat = await db.chat.findUnique({
+            ...chatResourceArgs,
+            where: {
+              id: chat.id,
+            },
+          });
+
+          expect(dbChat).toStrictEqual({
+            ...responseChat,
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date),
+            title: patchData.title,
+          });
+        });
+      });
+
+      describe.each([
+        validationTestCaseData.titleTooShort,
+        validationTestCaseData.titleTooLong,
+      ])(
+        'when provided: $testType',
+        ({ setupFn, badData, expectedBodyData }) => {
+          it('returns status code 400', async () => {
+            if (setupFn) {
+              await setupFn();
+            }
+
+            const user = await db.user.create({
+              data: dbData.dbUserData,
+            });
+
+            const chat = await db.chat.create({
+              data: {
+                title: 'My Chat Title',
+                participants: {
+                  connect: {
+                    id: user.id,
+                  },
+                },
+              },
+            });
+
+            const bearerToken = await createBearerHeader(dbData.dbUserData);
+
+            const response = await request(server)
+              .patch(`${baseUrl}/${chat.id}`)
+              .set('Authorization', bearerToken)
+              .send(badData);
+
+            expect(response.status).toStrictEqual(400);
+          });
+
+          it('returns appropriate errors', async () => {
+            if (setupFn) {
+              await setupFn();
+            }
+
+            const user = await db.user.create({
+              data: dbData.dbUserData,
+            });
+
+            const chat = await db.chat.create({
+              data: {
+                title: 'My Chat Title',
+                participants: {
+                  connect: {
+                    id: user.id,
+                  },
+                },
+              },
+            });
+
+            const bearerToken = await createBearerHeader(dbData.dbUserData);
+
+            const response = await request(server)
+              .patch(`${baseUrl}/${chat.id}`)
+              .set('Authorization', bearerToken)
+              .send(badData);
+
+            expect(response.body).toStrictEqual({
+              status: 'fail-validation',
+              data: expectedBodyData,
+            });
           });
         },
       );

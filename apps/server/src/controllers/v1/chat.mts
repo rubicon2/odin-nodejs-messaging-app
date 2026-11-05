@@ -1,6 +1,7 @@
 import * as createResponseBody from '@repo/response-json';
 import { createValidationErrors } from '@repo/validation/zod';
 import type { RequestHandler } from 'express';
+import type { ChatResource } from '../../db/chatResource.mjs';
 import { chatResourceArgs } from '../../db/chatResource.mjs';
 import { client as db } from '../../db/client.mjs';
 import { chains } from '../../schemas/serverChat.mjs';
@@ -70,6 +71,45 @@ export const post: RequestHandler = async (req, res, next) => {
       createResponseBody.successSingle(
         chatResource,
         'Chat successfully created',
+      ),
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const patch: RequestHandler = async (req, res, next) => {
+  try {
+    const chatResource = req.resource as ChatResource;
+
+    const parseResult = await chains.updatePartial().safeParseAsync(req.body);
+
+    if (!parseResult.success) {
+      return res
+        .status(400)
+        .send(
+          createResponseBody.failValidation(
+            createValidationErrors(parseResult.error),
+          ),
+        );
+    }
+
+    const parsedData = parseResult.data;
+
+    const updatedChat: ChatResource = await db.chat.update({
+      ...chatResourceArgs,
+      where: {
+        id: chatResource.id,
+      },
+      data: {
+        title: parsedData.title,
+      },
+    });
+
+    return res.json(
+      createResponseBody.successSingle(
+        updatedChat,
+        'Chat successfully updated',
       ),
     );
   } catch (error) {
