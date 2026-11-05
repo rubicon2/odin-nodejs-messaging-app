@@ -15,9 +15,19 @@ import * as dbData from '../../helpers/dbData.mjs';
  */
 type AllMethods = 'delete' | 'get' | 'patch' | 'post' | 'put';
 
+/**
+ * setupFn is for when we need to post an existing resource
+ * so we can PUT, PATCH or DELETE it in the test. It is good
+ * to have it together in the test data since the url depends
+ * on the id of the created resource.
+ */
 type TestCaseData = { method: AllMethods; url: string; setupFn?: () => void };
 
 const routeTestCases: Record<string, TestCaseData> = {
+  postChat: {
+    method: 'post',
+    url: `/v1/chat`,
+  },
   patchUser: {
     method: 'patch',
     url: `/v1/user/${dbData.dbUserData.id}`,
@@ -60,7 +70,28 @@ describe('given no access token, returns status code 401 and a message', () => {
 });
 
 describe('given a valid access token', () => {
-  describe.each(Object.values(routeTestCases))(
+  describe.each([routeTestCases.postChat])('$method $url', (routeTestCase) => {
+    const { method, url, setupFn } = routeTestCase;
+
+    it('allows a user to post a new resource', async () => {
+      if (setupFn) {
+        await setupFn();
+      }
+
+      const bearerToken = await createLoggedInUserAndGetBearerHeader(
+        dbData.dbUserData,
+      );
+
+      const response = await request(server)
+        [method](url)
+        .set('Authorization', bearerToken);
+
+      // Since we are not providing the correct data, will be code 400 instead of 200.
+      expect(response.status).toStrictEqual(400);
+    });
+  });
+
+  describe.each([routeTestCases.patchUser, routeTestCases.deleteUser])(
     '$method $url',
     ({ method, url, setupFn }) => {
       it('allows a user to update themselves', async () => {
