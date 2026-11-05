@@ -66,7 +66,7 @@ describe('chains', () => {
         });
       });
 
-      it('given a invitedUserIds array that contains invalid ids, throws an error', async () => {
+      it('given a invitedUserIds array that contains invalid ids, returns appropriate errors for each', async () => {
         const user = await db.user.create({
           data: dbUserData,
         });

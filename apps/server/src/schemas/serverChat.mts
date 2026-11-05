@@ -15,14 +15,13 @@ const post = () =>
       const invitedUserIds = data.invitedUserIds;
       for (let i = 0; i < invitedUserIds.length; i++) {
         const userId = invitedUserIds[i];
-        if (userId === undefined) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'undefined is not a valid user id',
-            path: ['invitedUserIds', i],
-          });
-          continue;
-        }
+        /**
+         * Since invitedUserIds array needs a string and I chose
+         * not to coerce undefined into a string, null or undefined
+         * should not reach this super refine function. So just
+         * skip over if falsy.
+         */
+        if (!userId) continue;
         const isUserIdValid = await refinements.userId(userId);
         if (!isUserIdValid) {
           ctx.addIssue({
