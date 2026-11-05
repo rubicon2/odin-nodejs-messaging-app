@@ -65,3 +65,20 @@ export const canUpdateChat: CheckPermissionsFunction = (req) => {
     .includes(user.id);
 };
 
+/**
+ * The last remaining participant in a chat can delete it,
+ * but we will only check if the user is ALLOWED to delete it
+ * here. The check for being the last participant will happen
+ * on the controller request handler.
+ *
+ * The reason being, if the user can't delete the chat because
+ * there is more than one participant, we want to be able to
+ * send a special message, not just "You are not authorized".
+ * Something like "Cannot delete a chat with more than one user".
+ */
+export const canDeleteChat: CheckPermissionsFunction = (req) => {
+  const { user, resource } = getUserAndResource<ChatResource>(req);
+  return resource.participants
+    .map((participant) => participant.id)
+    .includes(user.id);
+};
