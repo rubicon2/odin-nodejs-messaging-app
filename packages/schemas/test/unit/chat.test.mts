@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import z from 'zod';
 import { chains, fields } from '../../src/chat.mjs';
 
 const overlongTitle = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -115,15 +116,46 @@ describe('fields', () => {
     describe('fail', () => {
       it.each([
         {
+          testType: 'array is undefined',
+          badInput: undefined,
+          expectedTreeError: {
+            // General errors not scoped to a path/element.
+            errors: [],
+            /**
+             * Since undefined gets coerced into [undefined], the error
+             * is for the array element and not in general errors above.
+             */
+            items: [
+              {
+                errors: ['Required field'],
+              },
+            ],
+          },
+        },
+        {
           testType: 'array element is undefined',
-          badInput: [undefined],
-          expectedMessage: 'Required field',
+          badInput: [undefined, null],
+          expectedTreeError: {
+            errors: [],
+            // I.e. there is one entry for each element of the array.
+            items: [
+              {
+                errors: ['Required field'],
+              },
+              {
+                errors: ['Required field'],
+              },
+            ],
+          },
         },
       ])(
         `returns an appropriate error when $testType`,
-        ({ badInput, expectedMessage }) => {
-          expect(() => fields.invitedUserIds.parse(badInput)).toThrow(
-            expectedMessage,
+        ({ badInput, expectedTreeError }) => {
+          const parseResult = fields.invitedUserIds.safeParse(badInput);
+          expect(parseResult.success).toStrictEqual(false);
+          // biome-ignore lint: if !parseResult.success, error must be present.
+          expect(z.treeifyError(parseResult.error!)).toStrictEqual(
+            expectedTreeError,
           );
         },
       );

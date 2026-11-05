@@ -8,7 +8,10 @@ const createdByUserId = z.string(errors.requiredErrorMsg());
 
 const invitedUserIds = arrayPreprocesses
   .ensureArray(z.string(errors.requiredErrorMsg()))
-  .refine((value) => value.length !== 0, 'Requires at least one user');
+  .refine((value) => value.length !== 0, {
+    error: 'Requires at least one user',
+    path: ['invitedUserIds'],
+  });
 
 const title = z
   .string(errors.requiredErrorMsg())
