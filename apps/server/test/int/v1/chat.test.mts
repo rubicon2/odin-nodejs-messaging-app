@@ -1,3 +1,4 @@
+import { convertObjectDatesToStrings } from '@repo/all-dates-to-iso-strings';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { chatResourceArgs } from '../../../src/db/chatResource.mts';
@@ -502,6 +503,67 @@ describe(baseUrl, () => {
           });
         },
       );
+    });
+  });
+
+  describe('DELETE', () => {
+    it('given an invalid chatId param, returns status code 404 and a message', async () => {
+      const bearerToken = await createLoggedInUserAndGetBearerHeader(
+        dbData.dbUserData,
+      );
+
+      const response = await request(server)
+        .delete(`${baseUrl}/invalid-id`)
+        .set('Authorization', bearerToken);
+
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid chatId param', () => {
+      it('returns the deleted chat and deletes the chat from the database', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        // Create a chat to delete.
+        const chat = await db.chat.create({
+          ...chatResourceArgs,
+          data: {
+            title: 'My Chat Title',
+            participants: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
+
+        const response = await request(server)
+          .delete(`${baseUrl}/${chat.id}`)
+          .set('Authorization', bearerToken);
+
+        expect(response.statusCode).toStrictEqual(200);
+        expect(response.body).toStrictEqual({
+          status: 'success',
+          message: 'Chat successfully deleted',
+          data: {
+            item: convertObjectDatesToStrings(chat),
+          },
+        });
+
+        // Check it is gone from the database.
+        const deletedChat = await db.chat.findUnique({
+          where: {
+            id: chat.id,
+          },
+        });
+
+        expect(deletedChat).toBeNull();
+      });
     });
   });
 });

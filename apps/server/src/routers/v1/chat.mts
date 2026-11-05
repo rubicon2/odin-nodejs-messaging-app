@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as controller from '../../controllers/v1/chat.mjs';
-import { canUpdateChat } from '../../ext/checkPermissions.mjs';
+import { canDeleteChat, canUpdateChat } from '../../ext/checkPermissions.mjs';
 import { isAuthenticated } from '../../middleware/auth.mjs';
 import * as loaders from '../../middleware/loaders.mjs';
 import { canDo } from '../../middleware/permissions.mjs';
@@ -21,4 +21,11 @@ export const chat = Router()
     loaders.loadResource('chatId', loaders.loadChatResource),
     canDo(canUpdateChat),
     controller.patch,
+  )
+  .delete(
+    '/:chatId',
+    loadProtectedRouteMiddleware,
+    loaders.loadResource('chatId', loaders.loadChatResource),
+    canDo(canDeleteChat),
+    controller.del,
   );

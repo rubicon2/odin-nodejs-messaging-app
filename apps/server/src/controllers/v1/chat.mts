@@ -116,3 +116,38 @@ export const patch: RequestHandler = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const del: RequestHandler = async (req, res, next) => {
+  try {
+    const chatResource = req.resource as ChatResource;
+
+    if (chatResource.participants.length > 1) {
+      /**
+       * Using status code 400 because a participant does have permission, and
+       * if they retry later when other users have left, they will succeed.
+       */
+      return res
+        .status(400)
+        .send(
+          createResponseBody.fail(
+            'Cannot delete a chat with more than one participant',
+          ),
+        );
+    }
+
+    await db.chat.delete({
+      where: {
+        id: chatResource.id,
+      },
+    });
+
+    return res.json(
+      createResponseBody.successSingle(
+        chatResource,
+        'Chat successfully deleted',
+      ),
+    );
+  } catch (error) {
+    return next(error);
+  }
+};

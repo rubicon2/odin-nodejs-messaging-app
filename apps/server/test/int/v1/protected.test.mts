@@ -50,6 +50,28 @@ const routeTestCases: Record<string, TestCaseData> = {
       });
     },
   },
+  deleteChat: {
+    method: 'delete',
+    url: `/v1/chat/my-chat`,
+    setupFn: async () => {
+      // Post user so we can make them a chat participant, then create access token in test.
+      await db.user.create({
+        data: dbData.dbUserData,
+      });
+
+      await db.chat.create({
+        data: {
+          id: 'my-chat',
+          title: 'My Chat Title',
+          participants: {
+            connect: {
+              id: dbData.dbUserData.id,
+            },
+          },
+        },
+      });
+    },
+  },
   patchUser: {
     method: 'patch',
     url: `/v1/user/${dbData.dbUserData.id}`,
@@ -113,7 +135,7 @@ describe('given a valid access token', () => {
     });
   });
 
-  describe.each([routeTestCases.patchChat])(
+  describe.each([routeTestCases.patchChat, routeTestCases.deleteChat])(
     '$method $url',
     ({ method, url, setupFn }) => {
       it('allows a user to update a chat they are participating in', async () => {
