@@ -71,14 +71,10 @@ describe('chains', () => {
           data: dbUserData,
         });
 
-        await expect(() =>
-          chains.post().parseAsync({
-            createdByUserId: user.id,
-            invitedUserIds: ['invalid-id', 'another-invalid-id'],
-            title: 'My Amazing Chat',
-          }),
-        ).rejects.toThrow('User does not exist');
-
+        /**
+         * Test shape of errors by using z.treeifyError, otherwise
+         * it seems to be impossible to figure out the actual shape.
+         */
         const result = await chains.post().safeParseAsync({
           createdByUserId: user.id,
           invitedUserIds: ['invalid-id', 'another-invalid-id'],
