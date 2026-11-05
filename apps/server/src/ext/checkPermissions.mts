@@ -1,4 +1,5 @@
 import type { Request } from 'express';
+import type { ChatResource } from '../db/chatResource.mjs';
 import type { UserResource } from '../db/userResource.mjs';
 import type { CheckPermissionsFunction } from '../middleware/permissions.mjs';
 
@@ -53,3 +54,14 @@ export const canUpdateUser: CheckPermissionsFunction = (req) => {
   const { user, resource } = getUserAndResource<UserResource>(req);
   return user.id === resource.id;
 };
+
+/**
+ * Any participant in a chat can edit it.
+ */
+export const canUpdateChat: CheckPermissionsFunction = (req) => {
+  const { user, resource } = getUserAndResource<ChatResource>(req);
+  return resource.participants
+    .map((participant) => participant.id)
+    .includes(user.id);
+};
+
