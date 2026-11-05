@@ -1,7 +1,9 @@
 import * as createResponseBody from '@repo/response-json';
 import type { RequestHandler } from 'express';
+import { chatResourceArgs } from '../db/chatResource.mjs';
 import { client as db } from '../db/client.mjs';
-import { type UserResource, userResourceOmit } from '../db/userResource.mjs';
+import type { UserResource } from '../db/userResource.mjs';
+import { userResourceOmit } from '../db/userResource.mjs';
 
 declare global {
   namespace Express {
@@ -55,6 +57,17 @@ export const loadUserResource: ResourceLoader = async (resourceId: string) => {
   });
 
   return user;
+};
+
+export const loadChatResource: ResourceLoader = async (resourceId: string) => {
+  const chat = await db.chat.findUnique({
+    ...chatResourceArgs,
+    where: {
+      id: resourceId,
+    },
+  });
+
+  return chat;
 };
 
 export const loadResource =
