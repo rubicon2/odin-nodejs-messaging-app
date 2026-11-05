@@ -5,9 +5,12 @@ import { refinements } from './id.mjs';
 
 const post = () =>
   coreChains.post
-    .refine((data) => {
-      return refinements.userId(data.createdByUserId);
-    }, 'User does not exist')
+    .refine(
+      (data) => {
+        return refinements.userId(data.createdByUserId);
+      },
+      { error: 'User does not exist', path: ['createdByUserId'] },
+    )
     .superRefine(async (data, ctx) => {
       const invitedUserIds = data.invitedUserIds;
       for (let i = 0; i < invitedUserIds.length; i++) {

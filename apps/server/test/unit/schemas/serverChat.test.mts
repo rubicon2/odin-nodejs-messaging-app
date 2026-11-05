@@ -48,13 +48,22 @@ describe('chains', () => {
           },
         });
 
-        await expect(() =>
-          chains.post().parseAsync({
-            createdByUserId: 'invalid-id',
-            invitedUserIds: [userToInvite.id],
-            title: 'My Amazing Chat',
-          }),
-        ).rejects.toThrow('User does not exist');
+        const parseResult = await chains.post().safeParseAsync({
+          createdByUserId: 'invalid-id',
+          invitedUserIds: [userToInvite.id],
+          title: 'My Amazing Chat',
+        });
+
+        expect(parseResult.success).toStrictEqual(false);
+        // biome-ignore lint: If !parseResult.success, then error must exist.
+        expect(z.treeifyError(parseResult.error!)).toStrictEqual({
+          errors: [],
+          properties: {
+            createdByUserId: {
+              errors: ['User does not exist'],
+            },
+          },
+        });
       });
 
       it('given a invitedUserIds array that contains invalid ids, throws an error', async () => {
