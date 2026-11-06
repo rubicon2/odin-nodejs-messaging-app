@@ -2,6 +2,7 @@ import * as createResponseBody from '@repo/response-json';
 import type { RequestHandler } from 'express';
 import { chatResourceArgs } from '../db/chatResource.mjs';
 import { client as db } from '../db/client.mjs';
+import { inviteResourceArgs } from '../db/inviteResource.mjs';
 import type { UserResource } from '../db/userResource.mjs';
 import { userResourceOmit } from '../db/userResource.mjs';
 
@@ -68,6 +69,19 @@ export const loadChatResource: ResourceLoader = async (resourceId: string) => {
   });
 
   return chat;
+};
+
+export const loadInviteResource: ResourceLoader = async (
+  resourceId: string,
+) => {
+  const invite = await db.invite.findUnique({
+    ...inviteResourceArgs,
+    where: {
+      id: resourceId,
+    },
+  });
+
+  return invite;
 };
 
 export const loadResource =

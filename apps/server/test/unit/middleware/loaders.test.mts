@@ -220,3 +220,79 @@ describe('loadChatResource', () => {
     expect(chat).toBeNull();
   });
 });
+
+describe('loadInviteResource', () => {
+  it('given a valid invite id, returns the invite with the expected fields', async () => {
+    // Need to post a chat and two users before an invite is possible.
+    const dbChatData = {
+      id: 'my-chat-id',
+      title: 'My Chat Title',
+    };
+
+    await db.chat.create({
+      data: dbChatData,
+    });
+
+    const dbInviteUserData = {
+      id: 'invited-user-id',
+      handle: 'Mr_Chips',
+      displayName: 'Chippy McChipface',
+      hash: '12345',
+    };
+
+    await db.user.createMany({
+      data: [dbUserData, dbInviteUserData],
+    });
+
+    // How we have two users and a chat, we can create an invite.
+    const dbInvite = await db.invite.create({
+      data: {
+        chat: {
+          connect: {
+            id: dbChatData.id,
+          },
+        },
+        createdBy: {
+          connect: {
+            id: dbUserData.id,
+          },
+        },
+        invitee: {
+          connect: {
+            id: dbInviteUserData.id,
+          },
+        },
+      },
+    });
+
+    const invite = await loaders.loadInviteResource(dbInvite.id);
+
+    expect(invite).toStrictEqual({
+      chat: {
+        id: dbChatData.id,
+        participants: [],
+        title: dbChatData.title,
+      },
+      chatId: dbChatData.id,
+      createdAt: expect.any(Date),
+      createdBy: {
+        displayName: dbUserData.displayName,
+        handle: dbUserData.handle,
+        id: dbUserData.id,
+      },
+      createdById: dbUserData.id,
+      id: dbInvite.id,
+      invitee: {
+        displayName: dbInviteUserData.displayName,
+        handle: dbInviteUserData.handle,
+        id: dbInviteUserData.id,
+      },
+      inviteeId: dbInviteUserData.id,
+    });
+  });
+
+  it('given an invalid invite id, returns null', async () => {
+    const invite = await loaders.loadInviteResource('invalid-id');
+    expect(invite).toBeNull();
+  });
+});
