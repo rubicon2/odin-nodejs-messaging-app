@@ -20,11 +20,6 @@ const chainValidationTestCaseData = {
     badInput: { title: overlongTitle },
     expectedErrorMsg: 'Should be between 1 and 50 characters long',
   },
-  missingCreatedByUserId: {
-    testType: 'missing createdByUserId',
-    badInput: { createdByUserId: undefined },
-    expectedErrorMsg: 'Required field',
-  },
   missingInvitedUserIds: {
     testType: 'missing invitedUserIds array',
     badInput: { invitedUserIds: undefined },
@@ -69,32 +64,6 @@ describe('fields', () => {
         `returns an appropriate error when $testType`,
         ({ badInput, expectedMessage }) => {
           expect(() => fields.title.parse(badInput)).toThrow(expectedMessage);
-        },
-      );
-    });
-  });
-
-  describe('createdByUserId', () => {
-    describe('success', () => {
-      it('returns the parsed user id', () => {
-        const input = crypto.randomUUID();
-        expect(fields.createdByUserId.parse(input)).toStrictEqual(input);
-      });
-    });
-
-    describe('fail', () => {
-      it.each([
-        {
-          testType: 'input is undefined',
-          badInput: undefined,
-          expectedMessage: 'Required field',
-        },
-      ])(
-        `returns an appropriate error when $testType`,
-        ({ badInput, expectedMessage }) => {
-          expect(() => fields.createdByUserId.parse(badInput)).toThrow(
-            expectedMessage,
-          );
         },
       );
     });
@@ -167,7 +136,6 @@ describe('chains', () => {
   describe('post', () => {
     const goodInput = {
       title: 'My New Chat',
-      createdByUserId: crypto.randomUUID(),
       invitedUserIds: [crypto.randomUUID(), crypto.randomUUID()],
     };
 
@@ -193,7 +161,7 @@ describe('chains', () => {
 
   describe('updateAll', () => {
     const goodInput = {
-      // Can't update createdByUserId or invites after initial POST.
+      // Can't update invites after initial POST.
       title: 'My New Chat',
     };
 
@@ -224,7 +192,7 @@ describe('chains', () => {
 
   describe('updatePartial', () => {
     const goodInput = {
-      // Can't update createdByUserId or invites after initial POST.
+      // Can't update invites after initial POST.
       title: 'My New Chat',
     };
 

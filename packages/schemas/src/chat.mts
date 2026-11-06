@@ -4,8 +4,6 @@ import * as errors from './errors.mjs';
 
 const titleLength = { min: 1, max: 50 };
 
-const createdByUserId = z.string(errors.requiredErrorMsg());
-
 const invitedUserIds = arrayPreprocesses
   .ensureArray(z.string(errors.requiredErrorMsg()))
   .refine((value) => value.length !== 0, {
@@ -22,7 +20,6 @@ const title = z
   );
 
 const post = z.object({
-  createdByUserId,
   invitedUserIds,
   title,
 });
@@ -44,7 +41,6 @@ const updatePartial = z
 type UpdatePartialData = z.infer<typeof updatePartial>;
 
 export const fields = {
-  createdByUserId,
   invitedUserIds,
   title,
 };

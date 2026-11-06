@@ -25,30 +25,6 @@ interface ValidationTestCaseData {
 }
 
 const validationTestCaseData: Record<string, ValidationTestCaseData> = {
-  createdByUserIdMissing: {
-    testType: 'missing createdByUserId',
-    badData: { createdByUserId: undefined },
-    expectedBodyData: {
-      errors: [],
-      properties: {
-        createdByUserId: {
-          errors: ['Required field'],
-        },
-      },
-    },
-  },
-  createdByUserIdInvalid: {
-    testType: 'invalid createdByUserId',
-    badData: { createdByUserId: 'invalid-id' },
-    expectedBodyData: {
-      errors: [],
-      properties: {
-        createdByUserId: {
-          errors: ['User does not exist'],
-        },
-      },
-    },
-  },
   invitedUserIdsMissing: {
     testType: 'missing invitedUserIds array',
     badData: { invitedUserIds: undefined },
@@ -152,7 +128,6 @@ describe(baseUrl, () => {
           .post(baseUrl)
           .set('Authorization', accessToken)
           .send({
-            createdByUserId: dbData.dbUserData.id,
             invitedUserIds: [userToInvite.id],
             title: 'My Amazing Chat',
           });
@@ -176,7 +151,6 @@ describe(baseUrl, () => {
           .post(baseUrl)
           .set('Authorization', accessToken)
           .send({
-            createdByUserId: userData.id,
             invitedUserIds: [userToInvite.id],
             title: 'My Amazing Chat',
           });
@@ -272,7 +246,6 @@ describe(baseUrl, () => {
           });
 
           const goodData = {
-            createdByUserId: dbData.dbUserData.id,
             invitedUserIds: [invitee.id],
             title: 'My Chat Title',
           };
