@@ -93,3 +93,11 @@ export const canPostChatInvite: CheckPermissionsFunction = (req) => {
     .map((participant) => participant.id)
     .includes(user.id);
 };
+
+/**
+ * User can delete an invite to a chat if they created it.
+ */
+export const canDeleteInvite: CheckPermissionsFunction = (req) => {
+  const { user, resource } = getUserAndResource<InviteResource>(req);
+  return resource.createdById === user.id;
+};
