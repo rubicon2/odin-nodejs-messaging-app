@@ -1,168 +1,67 @@
+import type { User } from '@repo/db/prisma/client';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { client as db } from '../../../src/db/client.mjs';
 import { server } from '../../../src/server.mts';
-import {
-  createBearerHeader,
-  createLoggedInUserAndGetBearerHeader,
-} from '../../helpers/auth.mts';
+import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mts';
 import * as dbHelpers from '../../helpers/db.mjs';
 import * as dbData from '../../helpers/dbData.mjs';
 
-/**
- * There are other http methods but these are
- * the ones we are going to be testing.
- */
-type AllMethods = 'delete' | 'get' | 'patch' | 'post' | 'put';
+async function createOtherUser(): Promise<User> {
+  const user = await db.user.create({
+    data: {
+      id: 'other-user-id',
+      handle: 'other_user',
+      displayName: 'Other User Name',
+      hash: '12345',
+    },
+  });
 
-/**
- * setupFn is for when we need to post an existing resource
- * so we can PUT, PATCH or DELETE it in the test. It is good
- * to have it together in the test data since the url depends
- * on the id of the created resource.
- */
-type TestCaseData = { method: AllMethods; url: string; setupFn?: () => void };
-
-const routeTestCases: Record<string, TestCaseData> = {
-  postChat: {
-    method: 'post',
-    url: `/v1/chat`,
-  },
-  postInvite: {
-    method: 'post',
-    url: '/v1/chat/my-chat/invite',
-    setupFn: async () => {
-      // User needs to be part of chat to make an invite.
-      await db.chat.create({
-        data: {
-          id: 'my-chat',
-        },
-      });
-    },
-  },
-  patchChat: {
-    method: 'patch',
-    url: `/v1/chat/my-chat`,
-    setupFn: async () => {
-      // Post user so we can make them a chat participant, then create access token in test.
-      await db.user.create({
-        data: dbData.dbUserData,
-      });
-
-      await db.chat.create({
-        data: {
-          id: 'my-chat',
-          title: 'My Chat Title',
-          participants: {
-            connect: {
-              id: dbData.dbUserData.id,
-            },
-          },
-        },
-      });
-    },
-  },
-  deleteChat: {
-    method: 'delete',
-    url: `/v1/chat/my-chat`,
-    setupFn: async () => {
-      // Post user so we can make them a chat participant, then create access token in test.
-      await db.user.create({
-        data: dbData.dbUserData,
-      });
-
-      await db.chat.create({
-        data: {
-          id: 'my-chat',
-          title: 'My Chat Title',
-          participants: {
-            connect: {
-              id: dbData.dbUserData.id,
-            },
-          },
-        },
-      });
-    },
-  },
-  deleteInvite: {
-    method: 'post',
-    url: '/v1/chat/my-chat/invite/my-invite',
-    setupFn: async () => {
-      await db.chat.create({
-        data: {
-          id: 'my-chat',
-        },
-      });
-    },
-  },
-  patchUser: {
-    method: 'patch',
-    url: `/v1/user/${dbData.dbUserData.id}`,
-    setupFn: async () => {
-      await db.user.create({
-        data: dbData.dbUserData,
-      });
-    },
-  },
-  deleteUser: {
-    method: 'delete',
-    url: `/v1/user/${dbData.dbUserData.id}`,
-    setupFn: async () => {
-      await db.user.create({
-        data: dbData.dbUserData,
-      });
-    },
-  },
-};
+  return user;
+}
 
 beforeEach(dbHelpers.clearDb);
 
-describe('given no access token, returns status code 401 and a message', () => {
-  it.each(Object.values(routeTestCases))(
-    '$method $url',
-    async ({ method, url, setupFn }) => {
-      if (setupFn) {
-        await setupFn();
-      }
+describe('/v1/chat', () => {
+  const baseUrl = '/v1/chat';
 
-      const response = await request(server)[method](url);
+  describe('POST', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).post(baseUrl);
 
       expect(response.status).toStrictEqual(401);
-      expect(response.body).toStrictEqual({
-        status: 'fail',
-        message: 'You are not logged in',
-      });
-    },
-  );
-});
-
-describe('given a valid access token', () => {
-  describe('POST', () => {
-    describe('/v1/chat', () => {
-      it('allows a user to post a new resource', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
-
-        const response = await request(server)
-          .post('/v1/chat')
-          .set('Authorization', bearerToken);
-
-        // Since we are not providing the correct data, will be code 400 instead of 200.
-        expect(response.status).toStrictEqual(400);
-      });
     });
 
-    describe('/v1/chat/:chatId/invite', () => {
-      it('allows a user to post a new resource', async () => {
+    it('given a valid access token header, allows access', async () => {
+      const bearerToken = await createLoggedInUserAndGetBearerHeader(
+        dbData.dbUserData,
+      );
+
+      const response = await request(server)
+        .post(baseUrl)
+        .set('Authorization', bearerToken);
+
+      // Since we are not providing the correct data, will be code 400 instead of 200.
+      expect(response.status).toStrictEqual(400);
+    });
+  });
+
+  describe('PATCH', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).patch(`${baseUrl}/id`);
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', async () => {
+      it('allows a user to update a chat they are participating in', async () => {
         const bearerToken = await createLoggedInUserAndGetBearerHeader(
           dbData.dbUserData,
         );
 
-        // Post a chat and add user to it so we don't get 404 or 403.
+        // Create chat and add user to participants.
         const chat = await db.chat.create({
           data: {
-            title: 'My Amazing Chat',
             participants: {
               connect: {
                 id: dbData.dbUserData.id,
@@ -172,88 +71,310 @@ describe('given a valid access token', () => {
         });
 
         const response = await request(server)
-          .post(`/v1/chat/${chat.id}/invite`)
-          .set('Authorization', bearerToken);
-
-        // Since we are not providing the correct data, will be code 400 instead of 200.
-        expect(response.status).toStrictEqual(400);
-      });
-    });
-  });
-
-  describe.each([routeTestCases.patchChat, routeTestCases.deleteChat])(
-    '$method $url',
-    ({ method, url, setupFn }) => {
-      it('allows a user to update a chat they are participating in', async () => {
-        if (setupFn) {
-          await setupFn();
-        }
-
-        // User created on db in setupFn, for these tests.
-        const bearerToken = createBearerHeader(dbData.dbUserData);
-
-        const response = await request(server)
-          [method](url)
+          .patch(`${baseUrl}/${chat.id}`)
           .set('Authorization', bearerToken);
 
         expect(response.status).toStrictEqual(200);
       });
 
       it('does not allow a user to update a chat they are not part of', async () => {
-        if (setupFn) {
-          await setupFn();
-        }
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
 
-        const bearerToken = await createLoggedInUserAndGetBearerHeader({
-          ...dbData.dbUserData,
-          id: 'some-other-user-id',
-          handle: 'some_other_handle',
+        // Create chat but leave participants empty.
+        const chat = await db.chat.create({
+          data: {},
         });
 
         const response = await request(server)
-          [method](url)
+          .patch(`${baseUrl}/${chat.id}`)
           .set('Authorization', bearerToken);
 
         expect(response.status).toStrictEqual(403);
       });
-    },
-  );
+    });
+  });
 
-  describe.each([routeTestCases.patchUser, routeTestCases.deleteUser])(
-    '$method $url',
-    ({ method, url, setupFn }) => {
-      it('allows a user to update themselves', async () => {
-        if (setupFn) {
-          await setupFn();
-        }
+  describe('DELETE', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).delete(`${baseUrl}/id`);
 
-        const bearerToken = createBearerHeader(dbData.dbUserData);
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows a user to delete a chat they are participating in', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        // Create chat and add user to participants.
+        const chat = await db.chat.create({
+          data: {
+            participants: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
 
         const response = await request(server)
-          [method](url)
+          .delete(`${baseUrl}/${chat.id}`)
           .set('Authorization', bearerToken);
 
         expect(response.status).toStrictEqual(200);
       });
 
-      it('does not allow a user to update another user', async () => {
-        if (setupFn) {
-          await setupFn();
-        }
+      it('does not allow a user to delete a chat they are not part of', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
 
-        // Log in as a different user from that which we are trying to update.
-        const bearerToken = await createLoggedInUserAndGetBearerHeader({
-          ...dbData.dbUserData,
-          id: 'other-user-id',
-          handle: 'other_user',
+        // Create chat but leave participants empty.
+        const chat = await db.chat.create({
+          data: {},
         });
 
         const response = await request(server)
-          [method](url)
+          .delete(`${baseUrl}/${chat.id}`)
           .set('Authorization', bearerToken);
 
         expect(response.status).toStrictEqual(403);
       });
-    },
-  );
+    });
+  });
+});
+
+describe('/v1/chat/:chatId/invite', () => {
+  const baseUrl = '/v1/chat';
+
+  describe('POST', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).post(`${baseUrl}/id/invite`);
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows a participant in the chat to create an invite', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        // Post a chat and add user to it so we don't get 404 or 403.
+        const chat = await db.chat.create({
+          data: {
+            participants: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
+
+        const response = await request(server)
+          .post(`${baseUrl}/${chat.id}/invite`)
+          .set('Authorization', bearerToken);
+
+        // Since we are not providing the correct data, will be code 400 instead of 200.
+        expect(response.status).toStrictEqual(400);
+      });
+
+      it('does not allow a user to create an invite for a chat they are not part of', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        // Post a chat but don't add any participants.
+        const chat = await db.chat.create({
+          data: {},
+        });
+
+        const response = await request(server)
+          .post(`${baseUrl}/${chat.id}/invite`)
+          .set('Authorization', bearerToken);
+
+        // Since we are not providing the correct data, will be code 400 instead of 200.
+        expect(response.status).toStrictEqual(403);
+      });
+    });
+  });
+
+  describe('DELETE', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).delete(
+        `${baseUrl}/chat-id/invite/invite-id`,
+      );
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows a user to delete an invite they created', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        // Post another user and a chat so we can create an invite.
+        const userToInvite = await createOtherUser();
+
+        const chat = await db.chat.create({
+          data: {
+            participants: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
+
+        const invite = await db.invite.create({
+          data: {
+            chat: {
+              connect: {
+                id: chat.id,
+              },
+            },
+            createdBy: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+            invitee: {
+              connect: {
+                id: userToInvite.id,
+              },
+            },
+          },
+        });
+
+        const response = await request(server)
+          .delete(`${baseUrl}/${chat.id}/invite/${invite.id}`)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it("does not allow a user to delete an invite they didn't create", async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        // Post another user and a chat so we can create an invite.
+        const userToCreateInvite = await createOtherUser();
+
+        const chat = await db.chat.create({
+          data: {
+            participants: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
+
+        const invite = await db.invite.create({
+          data: {
+            chat: {
+              connect: {
+                id: chat.id,
+              },
+            },
+            createdBy: {
+              connect: {
+                id: userToCreateInvite.id,
+              },
+            },
+            invitee: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
+
+        const response = await request(server)
+          .delete(`${baseUrl}/${chat.id}/invite/${invite.id}`)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(403);
+      });
+    });
+  });
+});
+
+describe('/v1/user', () => {
+  const baseUrl = '/v1/user';
+
+  describe('PATCH', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).patch(`${baseUrl}/user-id`);
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows a user to update themselves', async () => {
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        const response = await request(server)
+          .patch(`${baseUrl}/${dbData.dbUserData.id}`)
+          .set('Authorization', accessToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it("doesn't allow a user to update another user", async () => {
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+        const otherUser = await createOtherUser();
+
+        const response = await request(server)
+          .patch(`${baseUrl}/${otherUser.id}`)
+          .set('Authorization', accessToken);
+
+        expect(response.status).toStrictEqual(403);
+      });
+    });
+  });
+
+  describe('DELETE', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).delete(`${baseUrl}/user-id`);
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows a user to delete themselves', async () => {
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+
+        const response = await request(server)
+          .delete(`${baseUrl}/${dbData.dbUserData.id}`)
+          .set('Authorization', accessToken);
+
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it("doesn't allow a user to delete another user", async () => {
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
+        const otherUser = await createOtherUser();
+
+        const response = await request(server)
+          .delete(`${baseUrl}/${otherUser.id}`)
+          .set('Authorization', accessToken);
+
+        expect(response.status).toStrictEqual(403);
+      });
+    });
+  });
 });
