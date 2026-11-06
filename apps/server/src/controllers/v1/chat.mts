@@ -116,7 +116,7 @@ export const del: RequestHandler = async (req, res, next) => {
        */
       return res
         .status(400)
-        .send(
+        .json(
           createResponseBody.fail(
             'Cannot delete a chat with more than one participant',
           ),

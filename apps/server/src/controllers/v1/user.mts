@@ -30,7 +30,7 @@ export const post: RequestHandler = async (req, res, next) => {
       omit: userResourceOmit,
     });
 
-    return res.send(
+    return res.json(
       createResponseBody.successSingle(user, 'User successfully created'),
     );
   } catch (error) {
@@ -69,7 +69,7 @@ export const patch: RequestHandler = async (req, res, next) => {
       omit: userResourceOmit,
     });
 
-    return res.send(
+    return res.json(
       createResponseBody.successSingle(
         updatedUser,
         'User successfully updated',
