@@ -1,7 +1,7 @@
 import * as createResponseBody from '@repo/response-json';
-import { createValidationErrors } from '@repo/validation/zod';
 import type { RequestHandler } from 'express';
 import { client as db } from '../../db/client.mjs';
+import { sendFailValidationResponse } from '../../ext/sendFailValidationResponse.mjs';
 import { createAccessToken, createRefreshToken } from '../../ext/tokens.mjs';
 import { env } from '../../schemas/env.mjs';
 import { chains } from '../../schemas/serverAuth.mjs';
@@ -42,13 +42,7 @@ export const login: RequestHandler = async (req, res, next) => {
   try {
     const parseResult = await chains.login().safeParseAsync(req.body);
     if (!parseResult.success) {
-      return res
-        .status(400)
-        .send(
-          createResponseBody.failValidation(
-            createValidationErrors(parseResult.error),
-          ),
-        );
+      return sendFailValidationResponse(req, res, parseResult.error);
     }
 
     // Since login chain checks if handle and password match, ok.

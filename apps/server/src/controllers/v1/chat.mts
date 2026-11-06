@@ -1,22 +1,16 @@
 import * as createResponseBody from '@repo/response-json';
-import { createValidationErrors } from '@repo/validation/zod';
 import type { RequestHandler } from 'express';
 import type { ChatResource } from '../../db/chatResource.mjs';
 import { chatResourceArgs } from '../../db/chatResource.mjs';
 import { client as db } from '../../db/client.mjs';
+import { sendFailValidationResponse } from '../../ext/sendFailValidationResponse.mjs';
 import { chains } from '../../schemas/serverChat.mjs';
 
 export const post: RequestHandler = async (req, res, next) => {
   try {
     const parseResult = await chains.post().safeParseAsync(req.body);
     if (!parseResult.success) {
-      return res
-        .status(400)
-        .send(
-          createResponseBody.failValidation(
-            createValidationErrors(parseResult.error),
-          ),
-        );
+      return sendFailValidationResponse(req, res, parseResult.error);
     }
 
     const { createdByUserId, invitedUserIds, title } = parseResult.data;
@@ -85,13 +79,7 @@ export const patch: RequestHandler = async (req, res, next) => {
     const parseResult = await chains.updatePartial().safeParseAsync(req.body);
 
     if (!parseResult.success) {
-      return res
-        .status(400)
-        .send(
-          createResponseBody.failValidation(
-            createValidationErrors(parseResult.error),
-          ),
-        );
+      return sendFailValidationResponse(req, res, parseResult.error);
     }
 
     const parsedData = parseResult.data;

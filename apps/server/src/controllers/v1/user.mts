@@ -4,25 +4,19 @@ import type {
 } from '@repo/db/prisma/models';
 import * as createResponseBody from '@repo/response-json';
 import { chains as searchChains } from '@repo/schemas/search';
-import { createValidationErrors } from '@repo/validation/zod';
 import type { RequestHandler } from 'express';
 import { client as db } from '../../db/client.mjs';
 import type { UserResource } from '../../db/userResource.mjs';
 import { userResourceOmit } from '../../db/userResource.mjs';
 import { hash } from '../../ext/password.mjs';
+import { sendFailValidationResponse } from '../../ext/sendFailValidationResponse.mjs';
 import { chains } from '../../schemas/serverUser.mjs';
 
 export const post: RequestHandler = async (req, res, next) => {
   try {
     const parseResult = await chains.signup().safeParseAsync(req.body);
     if (!parseResult.success) {
-      return res
-        .status(400)
-        .send(
-          createResponseBody.failValidation(
-            createValidationErrors(parseResult.error),
-          ),
-        );
+      return sendFailValidationResponse(req, res, parseResult.error);
     }
 
     const { handle, displayName, password } = parseResult.data;
@@ -53,13 +47,7 @@ export const patch: RequestHandler = async (req, res, next) => {
       .safeParseAsync(req.body);
 
     if (!parseResult.success) {
-      return res
-        .status(400)
-        .send(
-          createResponseBody.failValidation(
-            createValidationErrors(parseResult.error),
-          ),
-        );
+      return sendFailValidationResponse(req, res, parseResult.error);
     }
 
     const parsedData = parseResult.data;
@@ -127,13 +115,7 @@ export const getMany: RequestHandler = async (req, res, next) => {
   try {
     const parseResult = searchChains.searchUserParams.safeParse(req.query);
     if (!parseResult.success) {
-      return res
-        .status(400)
-        .send(
-          createResponseBody.failValidation(
-            createValidationErrors(parseResult.error),
-          ),
-        );
+      return sendFailValidationResponse(req, res, parseResult.error);
     }
 
     const parsedData = parseResult.data;
