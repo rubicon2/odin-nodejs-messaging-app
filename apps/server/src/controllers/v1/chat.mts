@@ -3,17 +3,22 @@ import type { RequestHandler } from 'express';
 import type { ChatResource } from '../../db/chatResource.mjs';
 import { chatResourceArgs } from '../../db/chatResource.mjs';
 import { client as db } from '../../db/client.mjs';
+import type { UserResource } from '../../db/userResource.mjs';
 import { sendFailValidationResponse } from '../../ext/sendFailValidationResponse.mjs';
 import { chains } from '../../schemas/serverChat.mjs';
 
 export const post: RequestHandler = async (req, res, next) => {
   try {
+    const user = req.user as UserResource;
+    if (!user) throw new Error('No user in req.user');
+
     const parseResult = await chains.post().safeParseAsync(req.body);
     if (!parseResult.success) {
       return sendFailValidationResponse(req, res, parseResult.error);
     }
 
-    const { createdByUserId, invitedUserIds, title } = parseResult.data;
+    const { invitedUserIds, title } = parseResult.data;
+    const createdByUserId = user.id;
 
     const { chat } = await db.$transaction(async (tx) => {
       const chat = await tx.chat.create({
