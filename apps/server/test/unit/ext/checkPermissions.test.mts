@@ -102,7 +102,7 @@ describe('canDeleteInvite', () => {
   });
 });
 
-describe('canPostChatInvite', () => {
+describe('canPostInvite', () => {
   describe('given a request containing a user and resource', () => {
     it('returns true if user is participant in the chat', () => {
       const req = createRequest({
@@ -118,7 +118,7 @@ describe('canPostChatInvite', () => {
         },
       });
 
-      expect(checkPermissions.canPostChatInvite(req)).toStrictEqual(true);
+      expect(checkPermissions.canPostInvite(req)).toStrictEqual(true);
     });
 
     it('returns false if user is not a participant in the chat', () => {
@@ -135,7 +135,7 @@ describe('canPostChatInvite', () => {
         },
       });
 
-      expect(checkPermissions.canPostChatInvite(req)).toStrictEqual(false);
+      expect(checkPermissions.canPostInvite(req)).toStrictEqual(false);
     });
   });
 

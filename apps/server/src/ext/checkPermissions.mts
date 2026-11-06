@@ -87,7 +87,7 @@ export const canDeleteChat: CheckPermissionsFunction = (req) => {
 /**
  * User can create an invite to a chat if they are a participant.
  */
-export const canPostChatInvite: CheckPermissionsFunction = (req) => {
+export const canPostInvite: CheckPermissionsFunction = (req) => {
   const { user, resource } = getUserAndResource<ChatResource>(req);
   return resource.participants
     .map((participant) => participant.id)
