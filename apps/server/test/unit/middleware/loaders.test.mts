@@ -189,3 +189,34 @@ describe('loadUserResource', () => {
     expect(user).toBeNull();
   });
 });
+
+describe('loadChatResource', () => {
+  it('given a valid chat id, returns the chat with the expected fields', async () => {
+    const dbChatData = {
+      id: 'my-chat-id',
+      title: 'My Chat Title',
+    };
+
+    await db.chat.create({
+      data: dbChatData,
+    });
+
+    const chat = await loaders.loadChatResource(dbChatData.id);
+
+    expect(chat).toStrictEqual({
+      id: dbChatData.id,
+      title: dbChatData.title,
+      createdBy: null,
+      createdById: null,
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+      invites: [],
+      participants: [],
+    });
+  });
+
+  it('given an invalid user id, returns null', async () => {
+    const chat = await loaders.loadChatResource('invalid-id');
+    expect(chat).toBeNull();
+  });
+});
