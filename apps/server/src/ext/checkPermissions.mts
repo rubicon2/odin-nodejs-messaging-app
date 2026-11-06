@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 import type { ChatResource } from '../db/chatResource.mjs';
+import type { InviteResource } from '../db/inviteResource.mjs';
 import type { UserResource } from '../db/userResource.mjs';
 import type { CheckPermissionsFunction } from '../middleware/permissions.mjs';
 
@@ -77,6 +78,16 @@ export const canUpdateChat: CheckPermissionsFunction = (req) => {
  * Something like "Cannot delete a chat with more than one user".
  */
 export const canDeleteChat: CheckPermissionsFunction = (req) => {
+  const { user, resource } = getUserAndResource<ChatResource>(req);
+  return resource.participants
+    .map((participant) => participant.id)
+    .includes(user.id);
+};
+
+/**
+ * User can create an invite to a chat if they are a participant.
+ */
+export const canPostChatInvite: CheckPermissionsFunction = (req) => {
   const { user, resource } = getUserAndResource<ChatResource>(req);
   return resource.participants
     .map((participant) => participant.id)

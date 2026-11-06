@@ -56,6 +56,60 @@ describe('canDeleteChat', () => {
   });
 });
 
+describe('canPostChatInvite', () => {
+  describe('given a request containing a user and resource', () => {
+    it('returns true if user is participant in the chat', () => {
+      const req = createRequest({
+        user: {
+          id: '1',
+        },
+        resource: {
+          participants: [
+            {
+              id: '1',
+            },
+          ],
+        },
+      });
+
+      expect(checkPermissions.canPostChatInvite(req)).toStrictEqual(true);
+    });
+
+    it('returns false if user is not a participant in the chat', () => {
+      const req = createRequest({
+        user: {
+          id: '1',
+        },
+        resource: {
+          participants: [
+            {
+              id: '2',
+            },
+          ],
+        },
+      });
+
+      expect(checkPermissions.canPostChatInvite(req)).toStrictEqual(false);
+    });
+  });
+
+  it('given a request with no user, throws an error', () => {
+    const req = createRequest();
+    expect(() => checkPermissions.canUpdateUser(req)).toThrow(
+      'req.user is undefined',
+    );
+  });
+
+  it('given a request with no resource, throws an error', () => {
+    const req = createRequest({
+      user: {},
+    });
+    expect(() => checkPermissions.canUpdateUser(req)).toThrow(
+      'req.resource is undefined',
+    );
+  });
+});
+
 describe('canUpdateChat', () => {
   describe('given a request containing a user and resource', () => {
     it('returns true if user is a participant in the chat', () => {
