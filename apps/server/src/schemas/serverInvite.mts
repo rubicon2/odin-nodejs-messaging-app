@@ -1,7 +1,7 @@
 import {
   chains as coreChains,
   fields as coreFields,
-} from '@repo/schemas/chat.invite';
+} from '@repo/schemas/invite';
 import { refinements } from './id.mjs';
 
 // These chains extend the @repo/schemas with server side checks.

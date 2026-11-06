@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chains, fields } from '../../src/chatInvite.mjs';
+import { chains, fields } from '../../src/invite.mjs';
 
 const chainValidationTestCaseData = {
   missingInvitedUserId: {

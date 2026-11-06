@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import { client as db } from '../../../src/db/client.mjs';
-import { chains, fields } from '../../../src/schemas/serverChatInvite.mjs';
+import { chains, fields } from '../../../src/schemas/serverInvite.mjs';
 import * as dbHelpers from '../../helpers/db.mjs';
 import { dbUserData } from '../../helpers/dbData.mjs';
 
