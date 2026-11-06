@@ -28,6 +28,18 @@ const routeTestCases: Record<string, TestCaseData> = {
     method: 'post',
     url: `/v1/chat`,
   },
+  postInvite: {
+    method: 'post',
+    url: '/v1/chat/my-chat/invite',
+    setupFn: async () => {
+      // User needs to be part of chat to make an invite.
+      await db.chat.create({
+        data: {
+          id: 'my-chat',
+        },
+      });
+    },
+  },
   patchChat: {
     method: 'patch',
     url: `/v1/chat/my-chat`,
@@ -68,6 +80,17 @@ const routeTestCases: Record<string, TestCaseData> = {
               id: dbData.dbUserData.id,
             },
           },
+        },
+      });
+    },
+  },
+  deleteInvite: {
+    method: 'post',
+    url: '/v1/chat/my-chat/invite/my-invite',
+    setupFn: async () => {
+      await db.chat.create({
+        data: {
+          id: 'my-chat',
         },
       });
     },
@@ -114,24 +137,47 @@ describe('given no access token, returns status code 401 and a message', () => {
 });
 
 describe('given a valid access token', () => {
-  describe.each([routeTestCases.postChat])('$method $url', (routeTestCase) => {
-    const { method, url, setupFn } = routeTestCase;
+  describe('POST', () => {
+    describe('/v1/chat', () => {
+      it('allows a user to post a new resource', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
 
-    it('allows a user to post a new resource', async () => {
-      if (setupFn) {
-        await setupFn();
-      }
+        const response = await request(server)
+          .post('/v1/chat')
+          .set('Authorization', bearerToken);
 
-      const bearerToken = await createLoggedInUserAndGetBearerHeader(
-        dbData.dbUserData,
-      );
+        // Since we are not providing the correct data, will be code 400 instead of 200.
+        expect(response.status).toStrictEqual(400);
+      });
+    });
 
-      const response = await request(server)
-        [method](url)
-        .set('Authorization', bearerToken);
+    describe('/v1/chat/:chatId/invite', () => {
+      it('allows a user to post a new resource', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbData.dbUserData,
+        );
 
-      // Since we are not providing the correct data, will be code 400 instead of 200.
-      expect(response.status).toStrictEqual(400);
+        // Post a chat and add user to it so we don't get 404 or 403.
+        const chat = await db.chat.create({
+          data: {
+            title: 'My Amazing Chat',
+            participants: {
+              connect: {
+                id: dbData.dbUserData.id,
+              },
+            },
+          },
+        });
+
+        const response = await request(server)
+          .post(`/v1/chat/${chat.id}/invite`)
+          .set('Authorization', bearerToken);
+
+        // Since we are not providing the correct data, will be code 400 instead of 200.
+        expect(response.status).toStrictEqual(400);
+      });
     });
   });
 

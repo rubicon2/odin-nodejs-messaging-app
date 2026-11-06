@@ -5,6 +5,7 @@ import { isAuthenticated } from '../../middleware/auth.mjs';
 import * as loaders from '../../middleware/loaders.mjs';
 import { canDo } from '../../middleware/permissions.mjs';
 import * as tokens from '../../middleware/tokens.mjs';
+import { invite } from './invite.mjs';
 
 const loadProtectedRouteMiddleware = [
   tokens.getAccessToken,
@@ -14,6 +15,7 @@ const loadProtectedRouteMiddleware = [
 ];
 
 export const chat = Router()
+  .use('/:chatId/invite', loadProtectedRouteMiddleware, invite)
   .post('/', loadProtectedRouteMiddleware, controller.post)
   .patch(
     '/:chatId',
