@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "*.env", "tsconfig.json"],
+      "inputs": ["src/**", "prisma/**", "*.env", "tsconfig.json"],
       "outputs": ["dist/**"]
     },
     "check-types": {
