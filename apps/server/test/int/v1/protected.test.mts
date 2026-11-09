@@ -307,6 +307,78 @@ describe('/v1/chat/:chatId/invite/:inviteId/accept', () => {
   });
 });
 
+describe('/v1/chat/:chatId/invite/:inviteId/reject', () => {
+  // Aliases for same data to make roles clearer in tests.
+  const dbChatParticipantData = dbData.dbUserData;
+  const dbInvitedUserData = dbData.dbUserData2;
+  const baseUrl = '/v1/chat';
+
+  describe('POST', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).post(
+        `${baseUrl}/chat-id/invite/invite-id/reject`,
+      );
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows the user to reject an invite if they are the invitee', async () => {
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbInvitedUserData);
+
+        // Post another user and a chat so we can create an invite to the currently logged in user.
+        await dbHelpers.postUser(dbChatParticipantData);
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbChatParticipantData.id),
+        );
+        await dbHelpers.addUserToChat(dbChatParticipantData.id, chat.id);
+
+        const invite = await dbHelpers.postInvite(
+          dbData.inviteData(
+            dbChatParticipantData.id,
+            dbInvitedUserData.id,
+            chat.id,
+          ),
+        );
+
+        const response = await request(server)
+          .post(`${baseUrl}/${chat.id}/invite/${invite.id}/reject`)
+          .set('Authorization', bearerToken);
+
+        // No body fields are required, so returns 200.
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it("doesn't allow a user to reject an invite if they are not the invitee", async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbChatParticipantData,
+        );
+
+        // Post another user and a chat so we can create an invite to the currently logged in user.
+        await dbHelpers.postUser(dbInvitedUserData);
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbChatParticipantData.id),
+        );
+        await dbHelpers.addUserToChat(dbChatParticipantData.id, chat.id);
+        const invite = await dbHelpers.postInvite(
+          dbData.inviteData(
+            dbChatParticipantData.id,
+            dbInvitedUserData.id,
+            chat.id,
+          ),
+        );
+
+        const response = await request(server)
+          .post(`${baseUrl}/${chat.id}/invite/${invite.id}/reject`)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(403);
+      });
+    });
+  });
+});
+
 describe('/v1/user', () => {
   const dbOtherUserData = dbData.dbUserData2;
   const baseUrl = '/v1/user';

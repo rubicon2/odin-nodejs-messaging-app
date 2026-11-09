@@ -91,6 +91,26 @@ export const accept: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const reject: RequestHandler = async (req, res, next) => {
+  try {
+    const inviteResource = req.resource as InviteResource;
+
+    // Delete all invites to this chat, not just the one that has been accepted.
+    await db.invite.deleteMany({
+      where: {
+        chatId: inviteResource.chatId,
+        inviteeId: inviteResource.inviteeId,
+      },
+    });
+
+    return res.json(
+      createResponseBody.success({}, 'Successfully rejected invite'),
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const del: RequestHandler = async (req, res, next) => {
   try {
     const inviteResource = req.resource as InviteResource;

@@ -21,6 +21,12 @@ export const invite = Router({ mergeParams: true })
     canDo(canRespondToInvite),
     controller.accept,
   )
+  .post(
+    '/:inviteId/reject',
+    loaders.loadResource('inviteId', loaders.loadInviteResource),
+    canDo(canRespondToInvite),
+    controller.reject,
+  )
   .delete(
     '/:inviteId',
     loaders.loadResource('inviteId', loaders.loadInviteResource),
