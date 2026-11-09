@@ -267,7 +267,9 @@ describe(baseUrl, () => {
       );
     });
   });
+});
 
+describe(`${baseUrl}/:chatId`, () => {
   describe('PATCH', () => {
     it('given an invalid chatId param, returns status code 404 and a message', async () => {
       const bearerToken = await createLoggedInUserAndGetBearerHeader(
