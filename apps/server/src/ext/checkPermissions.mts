@@ -101,3 +101,8 @@ export const canDeleteInvite: CheckPermissionsFunction = (req) => {
   const { user, resource } = getUserAndResource<InviteResource>(req);
   return resource.createdById === user.id;
 };
+
+export const canRespondToInvite: CheckPermissionsFunction = (req) => {
+  const { user, resource } = getUserAndResource<InviteResource>(req);
+  return resource.inviteeId === user.id;
+};
