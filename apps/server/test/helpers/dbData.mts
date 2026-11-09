@@ -10,3 +10,12 @@ export const dbUserData: Prisma.UserModel = {
   displayName: postData.userData.displayName,
   hash: password.hash(postData.userData.password),
 };
+
+export const dbUserData2: Prisma.UserModel = {
+  id: '2',
+  createdAt: new Date(Date.now()),
+  updatedAt: new Date(Date.now()),
+  handle: postData.userData2.handle,
+  displayName: postData.userData2.displayName,
+  hash: password.hash(postData.userData2.password),
+};
