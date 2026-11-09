@@ -379,6 +379,57 @@ describe('/v1/chat/:chatId/invite/:inviteId/reject', () => {
   });
 });
 
+describe('/v1/chat/:chatId/leave', () => {
+  // Aliases for same data to make roles clearer in tests.
+  const dbChatParticipantData = dbData.dbUserData;
+  const baseUrl = '/v1/chat';
+
+  describe('POST', () => {
+    it('given no access token header, returns status code 401', async () => {
+      const response = await request(server).post(`${baseUrl}/chat-id/leave`);
+
+      expect(response.status).toStrictEqual(401);
+    });
+
+    describe('given a valid access token header', () => {
+      it('allows the user to leave the chat', async () => {
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbChatParticipantData,
+        );
+
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbChatParticipantData.id),
+        );
+        await dbHelpers.addUserToChat(dbChatParticipantData.id, chat.id);
+
+        const response = await request(server)
+          .post(`${baseUrl}/${chat.id}/leave`)
+          .set('Authorization', bearerToken);
+
+        // No body fields are required, so returns 200.
+        expect(response.status).toStrictEqual(200);
+      });
+
+      it("doesn't allow a user to leave the chat if they aren't a part of it", async () => {
+        // Just to make it clear what role this user data is playing.
+        const dbOtherUserData = dbData.dbUserData;
+
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbOtherUserData);
+
+        // Create a chat, but don't add the logged in user to the participants.
+        const chat = await dbHelpers.postChat(dbData.chatData());
+
+        const response = await request(server)
+          .post(`${baseUrl}/${chat.id}/leave`)
+          .set('Authorization', bearerToken);
+
+        expect(response.status).toStrictEqual(403);
+      });
+    });
+  });
+});
+
 describe('/v1/user', () => {
   const dbOtherUserData = dbData.dbUserData2;
   const baseUrl = '/v1/user';

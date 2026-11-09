@@ -542,3 +542,116 @@ describe(`${baseUrl}/:chatId`, () => {
     });
   });
 });
+
+describe(`${baseUrl}/:chatId/leave`, () => {
+  describe('POST', () => {
+    it('given an invalid chatId param, returns status code 404 and a message', async () => {
+      const bearerToken = await createLoggedInUserAndGetBearerHeader(
+        dbData.dbUserData,
+      );
+
+      const response = await request(server)
+        .delete(`${baseUrl}/invalid-id/leave`)
+        .set('Authorization', bearerToken);
+
+      expect(response.statusCode).toStrictEqual(404);
+      expect(response.body).toStrictEqual({
+        status: 'fail',
+        message: 'Not found',
+      });
+    });
+
+    describe('given a valid chatId param', () => {
+      describe('given an access token for a user that is a chat participant', () => {
+        it('responds with status code 200 and a message', async () => {
+          const dbChatParticipantData = dbData.dbUserData;
+          const accessToken = await createLoggedInUserAndGetBearerHeader(
+            dbChatParticipantData,
+          );
+          const chat = await dbHelpers.postChat(
+            dbData.chatData(dbChatParticipantData.id),
+          );
+          await dbHelpers.addUserToChat(dbChatParticipantData.id, chat.id);
+
+          const response = await request(server)
+            .post(`${baseUrl}/${chat.id}/leave`)
+            .set('Authorization', accessToken);
+
+          // expect(response.status).toStrictEqual(200);
+          expect(response.body).toStrictEqual({
+            status: 'success',
+            message: 'Successfully left chat',
+            data: {},
+          });
+        });
+
+        it('given a chat with the user as the only participant, deletes the chat entirely', async () => {
+          const dbChatParticipantData = dbData.dbUserData;
+          const accessToken = await createLoggedInUserAndGetBearerHeader(
+            dbChatParticipantData,
+          );
+          const chat = await dbHelpers.postChat(
+            dbData.chatData(dbChatParticipantData.id),
+          );
+          await dbHelpers.addUserToChat(dbChatParticipantData.id, chat.id);
+
+          const response = await request(server)
+            .post(`${baseUrl}/${chat.id}/leave`)
+            .set('Authorization', accessToken);
+
+          // Just to make sure response is ok before making assertions.
+          expect(response.status).toStrictEqual(200);
+
+          // Check against database to see if chat has been deleted.
+          const dbChat = await db.chat.findUnique({
+            where: {
+              id: chat.id,
+            },
+          });
+
+          expect(dbChat).toBeNull();
+        });
+
+        it('given a chat with more than one participant, removes the user from the participants', async () => {
+          const dbChatParticipantData = dbData.dbUserData;
+          const dbOtherParticipantData = dbData.dbUserData2;
+          const dbChatData = dbData.chatData(dbChatParticipantData.id);
+
+          const accessToken = await createLoggedInUserAndGetBearerHeader(
+            dbChatParticipantData,
+          );
+
+          await dbHelpers.postChat(dbChatData);
+          await dbHelpers.postUser(dbOtherParticipantData);
+          await dbHelpers.addUserToChat(
+            dbChatParticipantData.id,
+            dbChatData.id,
+          );
+          await dbHelpers.addUserToChat(
+            dbOtherParticipantData.id,
+            dbChatData.id,
+          );
+
+          const response = await request(server)
+            .post(`${baseUrl}/${dbChatData.id}/leave`)
+            .set('Authorization', accessToken);
+
+          // Just to make sure response is ok before making assertions.
+          expect(response.status).toStrictEqual(200);
+
+          const dbChat = await db.chat.findUnique({
+            where: {
+              id: dbChatData.id,
+            },
+            include: {
+              participants: true,
+            },
+          });
+
+          expect(dbChat).not.toBeNull();
+          expect(dbChat?.participants).toStrictEqual([dbOtherParticipantData]);
+        });
+      });
+    });
+  });
+});

@@ -17,6 +17,19 @@ const loadProtectedRouteMiddleware = [
 export const chat = Router()
   .use('/:chatId/invite', loadProtectedRouteMiddleware, invite)
   .post('/', loadProtectedRouteMiddleware, controller.post)
+  .post(
+    '/:chatId/leave',
+    loadProtectedRouteMiddleware,
+    loaders.loadResource('chatId', loaders.loadChatResource),
+    /**
+     * Should the code for trying to leave a chat when not a
+     * participant be 400 or 403? Both are pretty valid. Since
+     * it is easier to just use the canDo middleware rather
+     * than add custom logic to the controller, will do that.
+     */
+    canDo(canUpdateChat),
+    controller.leave,
+  )
   .patch(
     '/:chatId',
     loadProtectedRouteMiddleware,

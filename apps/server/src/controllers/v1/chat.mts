@@ -144,3 +144,46 @@ export const del: RequestHandler = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const leave: RequestHandler = async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user) throw new Error('No user in req.user');
+
+    const chatResource = req.resource as ChatResource;
+
+    if (chatResource.participants.length <= 1) {
+      // If user is last remaining participant, just delete chat.
+      await db.chat.delete({
+        where: {
+          id: chatResource.id,
+        },
+      });
+    } else {
+      /**
+       * Otherwise, just remove the user from participants.
+       * Prisma will throw an error when trying to disconnect
+       * a user that isn't connected in the first place, but
+       * since a user has to be a participant in the chat to
+       * update it, no need to check if user is a participant
+       * here.
+       */
+      await db.chat.update({
+        where: {
+          id: chatResource.id,
+        },
+        data: {
+          participants: {
+            disconnect: {
+              id: user.id,
+            },
+          },
+        },
+      });
+    }
+
+    return res.json(createResponseBody.success({}, 'Successfully left chat'));
+  } catch (error) {
+    return next(error);
+  }
+};
