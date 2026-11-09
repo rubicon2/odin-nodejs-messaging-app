@@ -21,7 +21,7 @@ export const dbUserData2: Prisma.UserModel = {
 };
 
 export const chatData = (createdById?: string): Prisma.ChatModel => ({
-  id: 'chat-id',
+  id: crypto.randomUUID(),
   createdById: createdById ?? null,
   createdAt: new Date(Date.now()),
   updatedAt: new Date(Date.now()),
@@ -33,7 +33,7 @@ export const inviteData = (
   inviteeId: string,
   chatId: string,
 ): Prisma.InviteModel => ({
-  id: 'invite-id',
+  id: crypto.randomUUID(),
   chatId,
   createdById,
   inviteeId,
