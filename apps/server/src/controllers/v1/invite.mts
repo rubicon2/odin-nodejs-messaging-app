@@ -24,6 +24,25 @@ export const post: RequestHandler = async (req, res, next) => {
     const { invitedUserId } = parseResult.data;
     const createdByUserId = user.id;
 
+    // Check invite doesn't already exist for this chat/invitee.
+    const existingInvite = await db.invite.findUnique({
+      where: {
+        chatId_inviteeId: {
+          chatId,
+          inviteeId: invitedUserId,
+        },
+      },
+    });
+
+    if (existingInvite) {
+      return res
+        .status(400)
+        .json(
+          createResponseBody.fail('User has already been invited to this chat'),
+        );
+    }
+
+    // Otherwise, we are ok to create a new invite.
     const inviteResource = await db.invite.create({
       ...inviteResourceArgs,
       data: {

@@ -167,6 +167,40 @@ describe('/v1/chat/:chatId/invite', () => {
           });
         },
       );
+
+      it('when attempting to create an invite to a chat which the invitee has already been invited to, responds with status code 400 and a message', async () => {
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbChatParticipantUserData,
+        );
+
+        await dbHelpers.postChat(dbChatData);
+        await dbHelpers.addUserToChat(
+          dbChatParticipantUserData.id,
+          dbChatData.id,
+        );
+        await dbHelpers.postUser(dbInvitedUserData);
+        // Create an invite so when we try to create another, it will fail.
+        await dbHelpers.postInvite(
+          dbData.inviteData(
+            dbChatParticipantUserData.id,
+            dbInvitedUserData.id,
+            dbChatData.id,
+          ),
+        );
+
+        const response = await request(server)
+          .post(baseUrl)
+          .set('Authorization', accessToken)
+          .send({
+            invitedUserId: dbInvitedUserData.id,
+          });
+
+        expect(response.status).toStrictEqual(400);
+        expect(response.body).toStrictEqual({
+          status: 'fail',
+          message: 'User has already been invited to this chat',
+        });
+      });
     });
   });
 
@@ -323,7 +357,7 @@ describe('/v1/chat/:chatId/invite/:inviteId/accept', () => {
       ).toStrictEqual(true);
     });
 
-    it('deletes all invites to the chat once accepted', async () => {
+    it('deletes the invite', async () => {
       const accessToken =
         await createLoggedInUserAndGetBearerHeader(dbInvitedUserData);
 
@@ -335,18 +369,6 @@ describe('/v1/chat/:chatId/invite/:inviteId/accept', () => {
           dbInvitedUserData.id,
           chat.id,
         ),
-      );
-
-      // Create a second user and invite so we can make sure
-      // all invites are deleted, not just the accepted one.
-      const otherUser = await dbHelpers.postUser({
-        ...dbChatParticipantUserData,
-        id: 'other-user-id',
-        handle: 'some_other_user_handle',
-        displayName: 'mega face',
-      });
-      await dbHelpers.postInvite(
-        dbData.inviteData(otherUser.id, dbInvitedUserData.id, dbChatData.id),
       );
 
       const response = await request(server)
@@ -449,7 +471,7 @@ describe('/v1/chat/:chatId/invite/:inviteId/reject', () => {
       ).toStrictEqual(false);
     });
 
-    it('deletes all invites to the chat once rejected', async () => {
+    it('deletes the invite', async () => {
       const accessToken =
         await createLoggedInUserAndGetBearerHeader(dbInvitedUserData);
 
@@ -461,18 +483,6 @@ describe('/v1/chat/:chatId/invite/:inviteId/reject', () => {
           dbInvitedUserData.id,
           chat.id,
         ),
-      );
-
-      // Create a second user and invite so we can make sure
-      // all invites are deleted, not just the accepted one.
-      const otherUser = await dbHelpers.postUser({
-        ...dbChatParticipantUserData,
-        id: 'other-user-id',
-        handle: 'some_other_user_handle',
-        displayName: 'mega face',
-      });
-      await dbHelpers.postInvite(
-        dbData.inviteData(otherUser.id, dbInvitedUserData.id, dbChatData.id),
       );
 
       const response = await request(server)
