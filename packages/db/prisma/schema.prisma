@@ -62,4 +62,7 @@ model Invite {
   invitee     User     @relation("receivedInvites", fields: [inviteeId], references: [id], onDelete: Cascade)
   chatId      String
   chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  // So there can only be one invite per invitee per chat.
+  @@unique([chatId, inviteeId])
 }
