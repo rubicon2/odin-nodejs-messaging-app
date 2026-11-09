@@ -19,3 +19,23 @@ export const dbUserData2: Prisma.UserModel = {
   displayName: postData.userData2.displayName,
   hash: password.hash(postData.userData2.password),
 };
+
+export const chatData = (createdById?: string): Prisma.ChatModel => ({
+  id: 'chat-id',
+  createdById: createdById ?? null,
+  createdAt: new Date(Date.now()),
+  updatedAt: new Date(Date.now()),
+  title: 'My Amazing Chat',
+});
+
+export const inviteData = (
+  createdById: string,
+  inviteeId: string,
+  chatId: string,
+): Prisma.InviteModel => ({
+  id: 'invite-id',
+  chatId,
+  createdById,
+  inviteeId,
+  createdAt: new Date(Date.now()),
+});
