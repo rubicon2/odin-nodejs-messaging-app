@@ -36,45 +36,14 @@ const validationTestCaseData: Record<string, ValidationTestCaseData> = {
   },
 };
 
-const dbChatData = {
-  id: 'chat-id',
-  title: 'My Amazing Chat',
-};
-
-const dbUserToInviteData = {
-  id: '2',
-  handle: 'invited_user',
-  displayName: 'Invited User',
-  hash: '12345',
-};
-
-async function addUserToChat(chatId: string, userId: string) {
-  await db.chat.update({
-    where: {
-      id: chatId,
-    },
-    data: {
-      participants: {
-        connect: {
-          id: userId,
-        },
-      },
-    },
-  });
-}
-
-async function createChatAndUserToInvite() {
-  await db.user.create({
-    data: dbUserToInviteData,
-  });
-  await db.chat.create({
-    data: dbChatData,
-  });
-}
+const dbCurrentUserData = dbData.dbUserData;
+const dbInvitedUserData = dbData.dbUserData2;
+const dbChatData = dbData.chatData(dbCurrentUserData.id);
 
 /**
- * Need to call createChatAndUserToInvite
- * function, otherwise this will return a 404.
+ * Need to post chat to database before accessing
+ * routes that use this url, otherwise it will
+ * respond with a 404.
  */
 const baseUrl = `/v1/chat/${dbChatData.id}/invite`;
 
@@ -84,34 +53,36 @@ describe(baseUrl, () => {
   describe('POST', () => {
     describe('given the correct data', () => {
       it('returns status code 200', async () => {
-        const accessToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const accessToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
-        await createChatAndUserToInvite();
-        await addUserToChat(dbChatData.id, dbData.dbUserData.id);
+        await dbHelpers.postChat(dbChatData);
+        await dbHelpers.addUserToChat(dbCurrentUserData.id, dbChatData.id);
+        await dbHelpers.postUser(dbInvitedUserData);
 
         const response = await request(server)
           .post(baseUrl)
           .set('Authorization', accessToken)
           .send({
-            invitedUserId: dbUserToInviteData.id,
+            invitedUserId: dbInvitedUserData.id,
           });
 
         expect(response.status).toStrictEqual(200);
       });
 
       it('posts a new invite to the database and returns it', async () => {
-        const accessToken = await createLoggedInUserAndGetBearerHeader();
+        const accessToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
-        await createChatAndUserToInvite();
-        await addUserToChat(dbChatData.id, dbData.dbUserData.id);
+        await dbHelpers.postChat(dbChatData);
+        await dbHelpers.addUserToChat(dbCurrentUserData.id, dbChatData.id);
+        await dbHelpers.postUser(dbInvitedUserData);
 
         const response = await request(server)
           .post(baseUrl)
           .set('Authorization', accessToken)
           .send({
-            invitedUserId: dbUserToInviteData.id,
+            invitedUserId: dbInvitedUserData.id,
           });
 
         expect(response.body).toStrictEqual({
@@ -123,9 +94,9 @@ describe(baseUrl, () => {
                 id: dbChatData.id,
                 participants: [
                   {
-                    displayName: dbData.dbUserData.displayName,
-                    handle: dbData.dbUserData.handle,
-                    id: dbData.dbUserData.id,
+                    displayName: dbCurrentUserData.displayName,
+                    handle: dbCurrentUserData.handle,
+                    id: dbCurrentUserData.id,
                   },
                 ],
                 title: dbChatData.title,
@@ -133,18 +104,18 @@ describe(baseUrl, () => {
               chatId: dbChatData.id,
               createdAt: expect.any(String),
               createdBy: {
-                displayName: dbData.dbUserData.displayName,
-                handle: dbData.dbUserData.handle,
-                id: dbData.dbUserData.id,
+                displayName: dbCurrentUserData.displayName,
+                handle: dbCurrentUserData.handle,
+                id: dbCurrentUserData.id,
               },
               createdById: dbData.dbUserData.id,
               id: expect.any(String),
               invitee: {
-                displayName: dbUserToInviteData.displayName,
-                handle: dbUserToInviteData.handle,
-                id: dbUserToInviteData.id,
+                displayName: dbInvitedUserData.displayName,
+                handle: dbInvitedUserData.handle,
+                id: dbInvitedUserData.id,
               },
-              inviteeId: dbUserToInviteData.id,
+              inviteeId: dbInvitedUserData.id,
             },
           },
         });
@@ -163,15 +134,15 @@ describe(baseUrl, () => {
       it.each(Object.values(validationTestCaseData))(
         'when $testType, returns status code 400 and an error message',
         async ({ badData, expectedBodyData }) => {
-          const accessToken = await createLoggedInUserAndGetBearerHeader(
-            dbData.dbUserData,
-          );
+          const accessToken =
+            await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
-          await createChatAndUserToInvite();
-          await addUserToChat(dbChatData.id, dbData.dbUserData.id);
+          await dbHelpers.postChat(dbChatData);
+          await dbHelpers.addUserToChat(dbCurrentUserData.id, dbChatData.id);
+          await dbHelpers.postUser(dbInvitedUserData);
 
           const goodData = {
-            invitedUserId: dbUserToInviteData.id,
+            invitedUserId: dbInvitedUserData.id,
           };
 
           const response = await request(server)
@@ -194,9 +165,8 @@ describe(baseUrl, () => {
 
   describe('DELETE', () => {
     it('given an invalid inviteId param, returns status code 404 and a message', async () => {
-      const bearerToken = await createLoggedInUserAndGetBearerHeader(
-        dbData.dbUserData,
-      );
+      const bearerToken =
+        await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
       const response = await request(server)
         .delete(`${baseUrl}/invalid-id`)
@@ -211,33 +181,28 @@ describe(baseUrl, () => {
 
     describe('given a valid inviteId param', () => {
       it('deletes the invite from the database and returns it', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         // Since whether invite can be deleted depends on its creator,
-        // don't need to add user to the chat in this test.
-        await createChatAndUserToInvite();
+        // don't need to bother adding the user to the chat in this test.
+        await dbHelpers.postChat(dbChatData);
+        // But need another user to satisfy foreign key constraints.
+        await dbHelpers.postUser(dbInvitedUserData);
 
-        // Create an invite to delete.
-        const invite = await db.invite.create({
+        const dbInviteData = dbData.inviteData(
+          dbCurrentUserData.id,
+          dbInvitedUserData.id,
+          dbChatData.id,
+        );
+        const invite = await dbHelpers.postInvite(dbInviteData);
+
+        // dbHelpers return plain objects with no omissions or includes.
+        // Get it with the includes as returned by server for easier comparison.
+        const inviteWithIncludes = await db.invite.findUnique({
           ...inviteResourceArgs,
-          data: {
-            chat: {
-              connect: {
-                id: dbChatData.id,
-              },
-            },
-            createdBy: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-            invitee: {
-              connect: {
-                id: dbUserToInviteData.id,
-              },
-            },
+          where: {
+            id: invite.id,
           },
         });
 
@@ -250,7 +215,8 @@ describe(baseUrl, () => {
           status: 'success',
           message: 'Invite successfully deleted',
           data: {
-            item: convertObjectDatesToStrings(invite),
+            // biome-ignore lint: We know this is not going to be null.
+            item: convertObjectDatesToStrings(inviteWithIncludes!),
           },
         });
 
