@@ -241,3 +241,129 @@ describe('/v1/chat/:chatId/invite', () => {
     });
   });
 });
+
+describe('/v1/chat/:chatId/invite/:inviteId/accept', () => {
+  const baseUrl = `/v1/chat/${dbChatData.id}/invite`;
+
+  describe('POST', () => {
+    it("given the invitee's access token, responds with status code 200 and a message", async () => {
+      const accessToken =
+        await createLoggedInUserAndGetBearerHeader(dbInvitedUserData);
+
+      await dbHelpers.postUser(dbChatParticipantUserData);
+      const chat = await dbHelpers.postChat(dbChatData);
+      const invite = await dbHelpers.postInvite(
+        dbData.inviteData(
+          dbChatParticipantUserData.id,
+          dbInvitedUserData.id,
+          chat.id,
+        ),
+      );
+
+      const response = await request(server)
+        .post(`${baseUrl}/${invite.id}/accept`)
+        .set('Authorization', accessToken);
+
+      expect(response.status).toStrictEqual(200);
+      expect(response.body).toStrictEqual({
+        status: 'success',
+        message: 'Successfully accepted invite',
+        data: {},
+      });
+    });
+
+    it('adds the invited user to the chat participants', async () => {
+      const accessToken =
+        await createLoggedInUserAndGetBearerHeader(dbInvitedUserData);
+
+      await dbHelpers.postUser(dbChatParticipantUserData);
+      const chat = await dbHelpers.postChat(dbChatData);
+      const invite = await dbHelpers.postInvite(
+        dbData.inviteData(
+          dbChatParticipantUserData.id,
+          dbInvitedUserData.id,
+          chat.id,
+        ),
+      );
+
+      // Check invited user isn't already in chat participants before route is accessed.
+      let dbChat = await db.chat.findUnique({
+        where: {
+          id: chat.id,
+        },
+        include: {
+          participants: true,
+        },
+      });
+
+      expect(dbChat).not.toBeNull();
+      expect(
+        dbChat?.participants.map((p) => p.id).includes(dbInvitedUserData.id),
+      ).toStrictEqual(false);
+
+      const response = await request(server)
+        .post(`${baseUrl}/${invite.id}/accept`)
+        .set('Authorization', accessToken);
+
+      // Just to make sure the response was successful before making assertions.
+      expect(response.status).toStrictEqual(200);
+
+      dbChat = await db.chat.findUnique({
+        where: {
+          id: chat.id,
+        },
+        include: {
+          participants: true,
+        },
+      });
+
+      // Now invite has been accepted, invited user's id should be in participant ids.
+      expect(
+        dbChat?.participants.map((p) => p.id).includes(dbInvitedUserData.id),
+      ).toStrictEqual(true);
+    });
+
+    it('deletes all invites to the chat once accepted', async () => {
+      const accessToken =
+        await createLoggedInUserAndGetBearerHeader(dbInvitedUserData);
+
+      await dbHelpers.postUser(dbChatParticipantUserData);
+      const chat = await dbHelpers.postChat(dbChatData);
+      const invite = await dbHelpers.postInvite(
+        dbData.inviteData(
+          dbChatParticipantUserData.id,
+          dbInvitedUserData.id,
+          chat.id,
+        ),
+      );
+
+      // Create a second user and invite so we can make sure
+      // all invites are deleted, not just the accepted one.
+      const otherUser = await dbHelpers.postUser({
+        ...dbChatParticipantUserData,
+        id: 'other-user-id',
+        handle: 'some_other_user_handle',
+        displayName: 'mega face',
+      });
+      await dbHelpers.postInvite(
+        dbData.inviteData(otherUser.id, dbInvitedUserData.id, dbChatData.id),
+      );
+
+      const response = await request(server)
+        .post(`${baseUrl}/${invite.id}/accept`)
+        .set('Authorization', accessToken);
+
+      // Just to make sure the response was successful before making assertions.
+      expect(response.status).toStrictEqual(200);
+
+      const dbInvites = await db.invite.findMany({
+        where: {
+          chatId: dbChatData.id,
+          inviteeId: dbInvitedUserData.id,
+        },
+      });
+
+      expect(dbInvites.length).toStrictEqual(0);
+    });
+  });
+});

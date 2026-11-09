@@ -56,6 +56,41 @@ export const post: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const accept: RequestHandler = async (req, res, next) => {
+  try {
+    const inviteResource = req.resource as InviteResource;
+
+    await db.$transaction(async (tx) => {
+      await tx.chat.update({
+        where: {
+          id: inviteResource.chatId,
+        },
+        data: {
+          participants: {
+            connect: {
+              id: inviteResource.inviteeId,
+            },
+          },
+        },
+      });
+
+      // Delete all invites to this chat, not just the one that has been accepted.
+      await tx.invite.deleteMany({
+        where: {
+          chatId: inviteResource.chatId,
+          inviteeId: inviteResource.inviteeId,
+        },
+      });
+    });
+
+    return res.json(
+      createResponseBody.success({}, 'Successfully accepted invite'),
+    );
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const del: RequestHandler = async (req, res, next) => {
   try {
     const inviteResource = req.resource as InviteResource;
