@@ -1,24 +1,11 @@
-import type { User } from '@repo/db/prisma/client';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { client as db } from '../../../src/db/client.mjs';
 import { server } from '../../../src/server.mts';
 import { createLoggedInUserAndGetBearerHeader } from '../../helpers/auth.mts';
 import * as dbHelpers from '../../helpers/db.mjs';
 import * as dbData from '../../helpers/dbData.mjs';
 
-async function createOtherUser(): Promise<User> {
-  const user = await db.user.create({
-    data: {
-      id: 'other-user-id',
-      handle: 'other_user',
-      displayName: 'Other User Name',
-      hash: '12345',
-    },
-  });
-
-  return user;
-}
+const dbCurrentUserData = dbData.dbUserData;
 
 beforeEach(dbHelpers.clearDb);
 
@@ -55,20 +42,14 @@ describe('/v1/chat', () => {
 
     describe('given a valid access token header', async () => {
       it('allows a user to update a chat they are participating in', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         // Create chat and add user to participants.
-        const chat = await db.chat.create({
-          data: {
-            participants: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-          },
-        });
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
+        await dbHelpers.addUserToChat(dbCurrentUserData.id, chat.id);
 
         const response = await request(server)
           .patch(`${baseUrl}/${chat.id}`)
@@ -78,14 +59,13 @@ describe('/v1/chat', () => {
       });
 
       it('does not allow a user to update a chat they are not part of', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         // Create chat but leave participants empty.
-        const chat = await db.chat.create({
-          data: {},
-        });
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
 
         const response = await request(server)
           .patch(`${baseUrl}/${chat.id}`)
@@ -105,20 +85,14 @@ describe('/v1/chat', () => {
 
     describe('given a valid access token header', () => {
       it('allows a user to delete a chat they are participating in', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         // Create chat and add user to participants.
-        const chat = await db.chat.create({
-          data: {
-            participants: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-          },
-        });
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
+        await dbHelpers.addUserToChat(dbCurrentUserData.id, chat.id);
 
         const response = await request(server)
           .delete(`${baseUrl}/${chat.id}`)
@@ -128,14 +102,13 @@ describe('/v1/chat', () => {
       });
 
       it('does not allow a user to delete a chat they are not part of', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         // Create chat but leave participants empty.
-        const chat = await db.chat.create({
-          data: {},
-        });
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
 
         const response = await request(server)
           .delete(`${baseUrl}/${chat.id}`)
@@ -148,6 +121,7 @@ describe('/v1/chat', () => {
 });
 
 describe('/v1/chat/:chatId/invite', () => {
+  const dbInvitedUserData = dbData.dbUserData2;
   const baseUrl = '/v1/chat';
 
   describe('POST', () => {
@@ -159,20 +133,14 @@ describe('/v1/chat/:chatId/invite', () => {
 
     describe('given a valid access token header', () => {
       it('allows a participant in the chat to create an invite', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         // Post a chat and add user to it so we don't get 404 or 403.
-        const chat = await db.chat.create({
-          data: {
-            participants: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-          },
-        });
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
+        await dbHelpers.addUserToChat(dbCurrentUserData.id, chat.id);
 
         const response = await request(server)
           .post(`${baseUrl}/${chat.id}/invite`)
@@ -188,9 +156,9 @@ describe('/v1/chat/:chatId/invite', () => {
         );
 
         // Post a chat but don't add any participants.
-        const chat = await db.chat.create({
-          data: {},
-        });
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
 
         const response = await request(server)
           .post(`${baseUrl}/${chat.id}/invite`)
@@ -213,88 +181,50 @@ describe('/v1/chat/:chatId/invite', () => {
 
     describe('given a valid access token header', () => {
       it('allows a user to delete an invite they created', async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+
+        // Post a chat and another user so we can create an invite.
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbCurrentUserData.id),
+        );
+        await dbHelpers.addUserToChat(dbCurrentUserData.id, chat.id);
+        await dbHelpers.postUser(dbInvitedUserData);
+        // The currently logged in user, who is part of the chat, invites the other user to join the chat.
+        const invite = await dbHelpers.postInvite(
+          dbData.inviteData(
+            dbCurrentUserData.id,
+            dbInvitedUserData.id,
+            chat.id,
+          ),
         );
 
-        // Post another user and a chat so we can create an invite.
-        const userToInvite = await createOtherUser();
-
-        const chat = await db.chat.create({
-          data: {
-            participants: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-          },
-        });
-
-        const invite = await db.invite.create({
-          data: {
-            chat: {
-              connect: {
-                id: chat.id,
-              },
-            },
-            createdBy: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-            invitee: {
-              connect: {
-                id: userToInvite.id,
-              },
-            },
-          },
-        });
-
+        // The currently logged in user tries to delete the invite and is successful.
         const response = await request(server)
-          .delete(`${baseUrl}/${chat.id}/invite/${invite.id}`)
+          .delete(`${baseUrl}/${invite.chatId}/invite/${invite.id}`)
           .set('Authorization', bearerToken);
 
         expect(response.status).toStrictEqual(200);
       });
 
       it("does not allow a user to delete an invite they didn't create", async () => {
-        const bearerToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
+        const bearerToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+
+        // Post another user and create a chat that belongs to them, not the current user.
+        const dbOtherUserData = dbData.dbUserData2;
+        await dbHelpers.postUser(dbOtherUserData);
+
+        const chat = await dbHelpers.postChat(
+          dbData.chatData(dbOtherUserData.id),
+        );
+        await dbHelpers.addUserToChat(dbOtherUserData.id, chat.id);
+        // The other user creates an invite to the currently logged in user.
+        const invite = await dbHelpers.postInvite(
+          dbData.inviteData(dbOtherUserData.id, dbCurrentUserData.id, chat.id),
         );
 
-        // Post another user and a chat so we can create an invite.
-        const userToCreateInvite = await createOtherUser();
-
-        const chat = await db.chat.create({
-          data: {
-            participants: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-          },
-        });
-
-        const invite = await db.invite.create({
-          data: {
-            chat: {
-              connect: {
-                id: chat.id,
-              },
-            },
-            createdBy: {
-              connect: {
-                id: userToCreateInvite.id,
-              },
-            },
-            invitee: {
-              connect: {
-                id: dbData.dbUserData.id,
-              },
-            },
-          },
-        });
-
+        // The current user tries to delete the invite, but they should not be allowed.
         const response = await request(server)
           .delete(`${baseUrl}/${chat.id}/invite/${invite.id}`)
           .set('Authorization', bearerToken);
@@ -306,6 +236,7 @@ describe('/v1/chat/:chatId/invite', () => {
 });
 
 describe('/v1/user', () => {
+  const dbOtherUserData = dbData.dbUserData2;
   const baseUrl = '/v1/user';
 
   describe('PATCH', () => {
@@ -317,25 +248,24 @@ describe('/v1/user', () => {
 
     describe('given a valid access token header', () => {
       it('allows a user to update themselves', async () => {
-        const accessToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const accessToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         const response = await request(server)
-          .patch(`${baseUrl}/${dbData.dbUserData.id}`)
+          .patch(`${baseUrl}/${dbCurrentUserData.id}`)
           .set('Authorization', accessToken);
 
         expect(response.status).toStrictEqual(200);
       });
 
       it("doesn't allow a user to update another user", async () => {
-        const accessToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
-        const otherUser = await createOtherUser();
+        const accessToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+
+        await dbHelpers.postUser(dbOtherUserData);
 
         const response = await request(server)
-          .patch(`${baseUrl}/${otherUser.id}`)
+          .patch(`${baseUrl}/${dbOtherUserData.id}`)
           .set('Authorization', accessToken);
 
         expect(response.status).toStrictEqual(403);
@@ -352,25 +282,23 @@ describe('/v1/user', () => {
 
     describe('given a valid access token header', () => {
       it('allows a user to delete themselves', async () => {
-        const accessToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
+        const accessToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
 
         const response = await request(server)
-          .delete(`${baseUrl}/${dbData.dbUserData.id}`)
+          .delete(`${baseUrl}/${dbCurrentUserData.id}`)
           .set('Authorization', accessToken);
 
         expect(response.status).toStrictEqual(200);
       });
 
       it("doesn't allow a user to delete another user", async () => {
-        const accessToken = await createLoggedInUserAndGetBearerHeader(
-          dbData.dbUserData,
-        );
-        const otherUser = await createOtherUser();
+        const accessToken =
+          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+        await dbHelpers.postUser(dbOtherUserData);
 
         const response = await request(server)
-          .delete(`${baseUrl}/${otherUser.id}`)
+          .delete(`${baseUrl}/${dbOtherUserData.id}`)
           .set('Authorization', accessToken);
 
         expect(response.status).toStrictEqual(403);
