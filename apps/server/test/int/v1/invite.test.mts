@@ -36,28 +36,27 @@ const validationTestCaseData: Record<string, ValidationTestCaseData> = {
   },
 };
 
-const dbCurrentUserData = dbData.dbUserData;
+const dbChatParticipantUserData = dbData.dbUserData;
 const dbInvitedUserData = dbData.dbUserData2;
-const dbChatData = dbData.chatData(dbCurrentUserData.id);
-
-/**
- * Need to post chat to database before accessing
- * routes that use this url, otherwise it will
- * respond with a 404.
- */
-const baseUrl = `/v1/chat/${dbChatData.id}/invite`;
+const dbChatData = dbData.chatData(dbChatParticipantUserData.id);
 
 beforeEach(dbHelpers.clearDb);
 
-describe(baseUrl, () => {
+describe('/v1/chat/:chatId/invite', () => {
+  const baseUrl = `/v1/chat/${dbChatData.id}/invite`;
+
   describe('POST', () => {
     describe('given the correct data', () => {
       it('returns status code 200', async () => {
-        const accessToken =
-          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbChatParticipantUserData,
+        );
 
         await dbHelpers.postChat(dbChatData);
-        await dbHelpers.addUserToChat(dbCurrentUserData.id, dbChatData.id);
+        await dbHelpers.addUserToChat(
+          dbChatParticipantUserData.id,
+          dbChatData.id,
+        );
         await dbHelpers.postUser(dbInvitedUserData);
 
         const response = await request(server)
@@ -71,11 +70,15 @@ describe(baseUrl, () => {
       });
 
       it('posts a new invite to the database and returns it', async () => {
-        const accessToken =
-          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+        const accessToken = await createLoggedInUserAndGetBearerHeader(
+          dbChatParticipantUserData,
+        );
 
         await dbHelpers.postChat(dbChatData);
-        await dbHelpers.addUserToChat(dbCurrentUserData.id, dbChatData.id);
+        await dbHelpers.addUserToChat(
+          dbChatParticipantUserData.id,
+          dbChatData.id,
+        );
         await dbHelpers.postUser(dbInvitedUserData);
 
         const response = await request(server)
@@ -94,9 +97,9 @@ describe(baseUrl, () => {
                 id: dbChatData.id,
                 participants: [
                   {
-                    displayName: dbCurrentUserData.displayName,
-                    handle: dbCurrentUserData.handle,
-                    id: dbCurrentUserData.id,
+                    displayName: dbChatParticipantUserData.displayName,
+                    handle: dbChatParticipantUserData.handle,
+                    id: dbChatParticipantUserData.id,
                   },
                 ],
                 title: dbChatData.title,
@@ -104,9 +107,9 @@ describe(baseUrl, () => {
               chatId: dbChatData.id,
               createdAt: expect.any(String),
               createdBy: {
-                displayName: dbCurrentUserData.displayName,
-                handle: dbCurrentUserData.handle,
-                id: dbCurrentUserData.id,
+                displayName: dbChatParticipantUserData.displayName,
+                handle: dbChatParticipantUserData.handle,
+                id: dbChatParticipantUserData.id,
               },
               createdById: dbData.dbUserData.id,
               id: expect.any(String),
@@ -134,11 +137,15 @@ describe(baseUrl, () => {
       it.each(Object.values(validationTestCaseData))(
         'when $testType, returns status code 400 and an error message',
         async ({ badData, expectedBodyData }) => {
-          const accessToken =
-            await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+          const accessToken = await createLoggedInUserAndGetBearerHeader(
+            dbChatParticipantUserData,
+          );
 
           await dbHelpers.postChat(dbChatData);
-          await dbHelpers.addUserToChat(dbCurrentUserData.id, dbChatData.id);
+          await dbHelpers.addUserToChat(
+            dbChatParticipantUserData.id,
+            dbChatData.id,
+          );
           await dbHelpers.postUser(dbInvitedUserData);
 
           const goodData = {
@@ -165,8 +172,9 @@ describe(baseUrl, () => {
 
   describe('DELETE', () => {
     it('given an invalid inviteId param, returns status code 404 and a message', async () => {
-      const bearerToken =
-        await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+      const bearerToken = await createLoggedInUserAndGetBearerHeader(
+        dbChatParticipantUserData,
+      );
 
       const response = await request(server)
         .delete(`${baseUrl}/invalid-id`)
@@ -181,8 +189,9 @@ describe(baseUrl, () => {
 
     describe('given a valid inviteId param', () => {
       it('deletes the invite from the database and returns it', async () => {
-        const bearerToken =
-          await createLoggedInUserAndGetBearerHeader(dbCurrentUserData);
+        const bearerToken = await createLoggedInUserAndGetBearerHeader(
+          dbChatParticipantUserData,
+        );
 
         // Since whether invite can be deleted depends on its creator,
         // don't need to bother adding the user to the chat in this test.
@@ -191,7 +200,7 @@ describe(baseUrl, () => {
         await dbHelpers.postUser(dbInvitedUserData);
 
         const dbInviteData = dbData.inviteData(
-          dbCurrentUserData.id,
+          dbChatParticipantUserData.id,
           dbInvitedUserData.id,
           dbChatData.id,
         );
